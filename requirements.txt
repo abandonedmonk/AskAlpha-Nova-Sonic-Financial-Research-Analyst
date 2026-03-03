@@ -1,0 +1,26 @@
+# ─── Core ────────────────────────────────────────────────────────────────────
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+python-dotenv>=1.0.0
+pydantic>=2.6.0
+pydantic-settings>=2.2.0
+
+# ─── AWS ─────────────────────────────────────────────────────────────────────
+boto3>=1.34.0
+botocore>=1.34.0
+
+# ─── Polygon.io market data ───────────────────────────────────────────────────
+httpx>=0.27.0          # async HTTP client for Polygon REST calls
+
+# ─── Monte Carlo compute ─────────────────────────────────────────────────────
+numpy>=1.26.0
+
+# ─── SEC RAG fallback (local FAISS — used if Bedrock KB is not configured) ───
+# Uncomment if you want the local-FAISS fallback path:
+# llama-index>=0.10.0
+# faiss-cpu>=1.8.0
+# pypdf>=4.0.0
+
+# ─── Utilities ───────────────────────────────────────────────────────────────
+python-multipart>=0.0.9  # for FastAPI form/file uploads
+aiofiles>=23.2.1         # async file writes for vault logger

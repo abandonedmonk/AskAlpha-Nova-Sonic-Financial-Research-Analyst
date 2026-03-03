@@ -1,0 +1,43 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+.env
+!.env.example
+
+# ── Test / coverage ───────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+*.xml
+
+# ── Data & index ─────────────────────────────────────────────────────────────
+data/faiss_index/
+# Keep the SEC filings placeholder but ignore actual PDFs (can be large)
+data/sec_filings/*.pdf
+
+# ── Vault (personal notes) ────────────────────────────────────────────────────
+vault/*.md
+!vault/.gitkeep
+
+# ── Ironclad runtime binaries ─────────────────────────────────────────────────
+ironclad/ironclad-runtime
+ironclad/*.wasm
+
+# ── IDE / OS ──────────────────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.DS_Store
+Thumbs.db

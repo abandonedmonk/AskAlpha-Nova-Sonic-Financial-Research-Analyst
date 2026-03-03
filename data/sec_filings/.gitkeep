@@ -1,0 +1,10 @@
+# Place downloaded SEC 10-K / 10-Q PDFs here before running the Bedrock
+# Knowledge Base ingestion or the local FAISS index builder.
+#
+# Recommended tickers for the hackathon demo:
+#   NVDA  — nvidia-2024-10k.pdf
+#   AMD   — amd-2024-10k.pdf
+#   INTC  — intc-2024-10k.pdf
+#
+# EDGAR full-text search (no API key required):
+#   https://efts.sec.gov/LATEST/search-index?q=%22NVIDIA%22&dateRange=custom&startdt=2024-01-01&forms=10-K
