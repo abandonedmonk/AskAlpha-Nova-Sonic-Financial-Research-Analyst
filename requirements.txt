@@ -21,6 +21,13 @@ numpy>=1.26.0
 # faiss-cpu>=1.8.0
 # pypdf>=4.0.0
 
+# ─── Nova Sonic (voice) ──────────────────────────────────────────────────────
+pyaudio>=0.2.14          # audio I/O for voice capture/playback
+# AWS SDK v2 for Nova Sonic bidirectional streaming (requires Python 3.12+)
+aws-sdk-bedrock-runtime>=0.1.0
+smithy-core>=0.1.0
+smithy-aws-core>=0.1.0
+
 # ─── Utilities ───────────────────────────────────────────────────────────────
 python-multipart>=0.0.9  # for FastAPI form/file uploads
 aiofiles>=23.2.1         # async file writes for vault logger
