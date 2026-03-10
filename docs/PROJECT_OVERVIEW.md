@@ -87,9 +87,9 @@ Browser (microphone)
   └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘
        │              │              │              │
        ▼              ▼              ▼              ▼
-  Polygon.io    Bedrock KB      ironclad-       ./vault/
-  REST API      (or local       runtime or      *.md files
-                FAISS index)    native Python
+     Finnhub +     Bedrock KB      ironclad-       ./vault/
+     Polygon       (or local       runtime or      *.md files
+     fallback      FAISS index)    native Python
 ```
 
 ---
@@ -118,7 +118,7 @@ Voice_AI_Agent/
 │
 ├── tools/                       # Four financial tool backends
 │   ├── __init__.py
-│   ├── market_data.py           # Tool 1 — Polygon.io live price/volume
+│   ├── market_data.py           # Tool 1 — Finnhub primary + Polygon EOD fallback
 │   ├── sec_rag.py               # Tool 2 — SEC filings RAG (Bedrock KB or FAISS)
 │   ├── quant_model.py           # Tool 3 — Monte Carlo via ironclad or Python
 │   └── vault_logger.py          # Tool 4 — Markdown note writer
@@ -174,19 +174,20 @@ Centralised settings using **Pydantic Settings** (`pydantic-settings`).
 
 All environment variables are validated at process startup — the app fails fast rather than mid-request.
 
-| Setting                 | Env var                 | Default                       | Purpose                   |
-| ----------------------- | ----------------------- | ----------------------------- | ------------------------- |
-| `aws_access_key_id`     | `AWS_ACCESS_KEY_ID`     | required                      | AWS auth                  |
-| `aws_secret_access_key` | `AWS_SECRET_ACCESS_KEY` | required                      | AWS auth                  |
-| `aws_region`            | `AWS_REGION`            | `us-east-1`                   | Bedrock region            |
-| `nova_sonic_model_id`   | `NOVA_SONIC_MODEL_ID`   | `amazon.nova-sonic-v1:0`      | Nova Sonic model          |
-| `bedrock_kb_id`         | `BEDROCK_KB_ID`         | `""`                          | Bedrock Knowledge Base ID |
-| `polygon_api_key`       | `POLYGON_API_KEY`       | required                      | Polygon.io key            |
-| `vault_path`            | `VAULT_PATH`            | `./vault`                     | Where notes are saved     |
-| `ironclad_runtime_path` | `IRONCLAD_RUNTIME_PATH` | `./ironclad/ironclad-runtime` | Wasm sandbox binary       |
-| `app_host`              | `APP_HOST`              | `0.0.0.0`                     | Server bind address       |
-| `app_port`              | `APP_PORT`              | `8000`                        | Server port               |
-| `log_level`             | `LOG_LEVEL`             | `INFO`                        | Python log level          |
+| Setting                 | Env var                 | Default                       | Purpose                        |
+| ----------------------- | ----------------------- | ----------------------------- | ------------------------------ |
+| `aws_access_key_id`     | `AWS_ACCESS_KEY_ID`     | required                      | AWS auth                       |
+| `aws_secret_access_key` | `AWS_SECRET_ACCESS_KEY` | required                      | AWS auth                       |
+| `aws_region`            | `AWS_REGION`            | `us-east-1`                   | Bedrock region                 |
+| `nova_sonic_model_id`   | `NOVA_SONIC_MODEL_ID`   | `amazon.nova-sonic-v1:0`      | Nova Sonic model               |
+| `bedrock_kb_id`         | `BEDROCK_KB_ID`         | `""`                          | Bedrock Knowledge Base ID      |
+| `polygon_api_key`       | `POLYGON_API_KEY`       | required                      | Polygon.io key                 |
+| `finnhub_api_key`       | `FINNHUB_API_KEY`       | `""`                          | Finnhub key (primary provider) |
+| `vault_path`            | `VAULT_PATH`            | `./vault`                     | Where notes are saved          |
+| `ironclad_runtime_path` | `IRONCLAD_RUNTIME_PATH` | `./ironclad/ironclad-runtime` | Wasm sandbox binary            |
+| `app_host`              | `APP_HOST`              | `0.0.0.0`                     | Server bind address            |
+| `app_port`              | `APP_PORT`              | `8000`                        | Server port                    |
+| `log_level`             | `LOG_LEVEL`             | `INFO`                        | Python log level               |
 
 **Computed properties:**
 
@@ -208,7 +209,7 @@ Python package dependencies.
 | `python-dotenv`                  | `.env` file loading                      |
 | `pydantic` / `pydantic-settings` | Data validation & settings               |
 | `boto3` / `botocore`             | AWS SDK (Bedrock, Bedrock Agent Runtime) |
-| `httpx`                          | Async HTTP client for Polygon.io         |
+| `httpx`                          | Async HTTP client for Finnhub + Polygon  |
 | `numpy`                          | Monte Carlo vectorised computation       |
 | `python-multipart`               | FastAPI file/form upload support         |
 | `aiofiles`                       | Async file writes for the vault logger   |
@@ -356,26 +357,34 @@ Returns `{"status": "ok", "tools": [...]}`. Simple liveness check.
 
 **Function: `get_market_snapshot(ticker: str) -> dict`**
 
-Calls the Polygon.io snapshot endpoint:
+Uses a dual-provider path:
+
+1. **Primary:** Finnhub daily candle endpoint.
+2. **Fallback:** Polygon previous-day aggregate endpoint.
+
+Endpoints:
 
 ```
-GET https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/{ticker}
+GET https://finnhub.io/api/v1/stock/candle
+GET https://api.polygon.io/v2/aggs/ticker/{ticker}/prev?adjusted=true
 ```
 
 Extracts and returns:
 
-| Field        | Source                                                        |
-| ------------ | ------------------------------------------------------------- |
-| `ticker`     | Uppercased input                                              |
-| `price`      | `lastTrade.p` → `day.c` → `prevDay.c` (first non-null)        |
-| `open`       | `day.o`                                                       |
-| `high`       | `day.h`                                                       |
-| `low`        | `day.l`                                                       |
-| `volume`     | `day.v`                                                       |
-| `change_pct` | `(price - prevDay.c) / prevDay.c * 100` formatted as `+2.30%` |
-| `summary`    | Human-readable sentence for Nova Sonic to speak               |
+| Field            | Source                                              |
+| ---------------- | --------------------------------------------------- |
+| `ticker`         | Uppercased input                                    |
+| `price`          | Latest close (`c`)                                  |
+| `open`           | Latest open (`o`)                                   |
+| `high`           | Latest high (`h`)                                   |
+| `low`            | Latest low (`l`)                                    |
+| `volume`         | Latest volume (`v`)                                 |
+| `change_pct`     | `(price - open) / open * 100` formatted as `+2.30%` |
+| `summary`        | Human-readable sentence for Nova Sonic to speak     |
+| `data_source`    | `Finnhub` or `Polygon fallback`                     |
+| `data_freshness` | `daily latest` or `EOD (previous trading day)`      |
 
-**Rate limit handling:** A 429 response returns an `{"error": "..."}` dict without raising — Nova Sonic speaks a graceful message.
+If Finnhub fails and Polygon fallback is used, the summary explicitly states that the answer is **EOD fallback data**.
 
 ---
 
@@ -531,11 +540,12 @@ Empty directory (`.gitkeep` placeholder). Place downloaded 10-K/10-Q PDFs here b
 
 Unit tests for `tools/market_data.py`.
 
-| Test                                             | What it checks                                                         |
-| ------------------------------------------------ | ---------------------------------------------------------------------- |
-| `test_get_market_snapshot_returns_expected_keys` | All required response keys are present given a mocked Polygon response |
-| `test_get_market_snapshot_rate_limit`            | A 429 response returns `{"error": ...}` rather than raising            |
-| `test_get_market_snapshot_ticker_normalised`     | Input ticker is uppercased regardless of input case                    |
+| Test                                                                  | What it checks                                                             |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `test_get_market_snapshot_returns_expected_keys`                      | Finnhub primary success returns required keys                              |
+| `test_get_market_snapshot_falls_back_to_polygon_with_eod_notice`      | Polygon fallback is used when Finnhub fails, and EOD disclosure is present |
+| `test_get_market_snapshot_ticker_normalised`                          | Input ticker is uppercased before provider request                         |
+| `test_get_market_snapshot_both_providers_fail_returns_combined_error` | Combined error includes both provider failure reasons                      |
 
 #### `tests/test_monte_carlo.py`
 
@@ -582,12 +592,12 @@ Runtime directory. All Markdown notes created by Tool 4 (`log_research_insight`)
 
 ## 5. The Four Financial Tools
 
-| #   | Tool name                    | Backend file            | External service           | Fallback                 |
-| --- | ---------------------------- | ----------------------- | -------------------------- | ------------------------ |
-| 1   | `query_live_market_data`     | `tools/market_data.py`  | Polygon.io REST API        | None (returns error)     |
-| 2   | `analyze_sec_filings_rag`    | `tools/sec_rag.py`      | AWS Bedrock Knowledge Base | Local FAISS + LlamaIndex |
-| 3   | `execute_quantitative_model` | `tools/quant_model.py`  | ironclad-runtime (Wasm)    | Native Python in-process |
-| 4   | `log_research_insight`       | `tools/vault_logger.py` | Local filesystem           | None needed              |
+| #   | Tool name                    | Backend file            | External service           | Fallback                                        |
+| --- | ---------------------------- | ----------------------- | -------------------------- | ----------------------------------------------- |
+| 1   | `query_live_market_data`     | `tools/market_data.py`  | Finnhub daily candles      | Polygon previous-day aggregate (EOD disclosure) |
+| 2   | `analyze_sec_filings_rag`    | `tools/sec_rag.py`      | AWS Bedrock Knowledge Base | Local FAISS + LlamaIndex                        |
+| 3   | `execute_quantitative_model` | `tools/quant_model.py`  | ironclad-runtime (Wasm)    | Native Python in-process                        |
+| 4   | `log_research_insight`       | `tools/vault_logger.py` | Local filesystem           | None needed                                     |
 
 ---
 
@@ -635,7 +645,8 @@ Audio chunks sent from the browser are **silently dropped** while in `TOOL_EXECU
 - Python 3.11+
 - AWS account with Bedrock access in `us-east-1`
 - Nova Sonic model access approved in the Bedrock console
-- Polygon.io free-tier API key
+- Polygon.io API key (fallback provider)
+- Finnhub API key (recommended primary provider)
 
 ### Install
 
@@ -661,6 +672,12 @@ Edit `.env` — at minimum set:
 AWS_ACCESS_KEY_ID=...
 AWS_SECRET_ACCESS_KEY=...
 POLYGON_API_KEY=...
+```
+
+Recommended for primary market data path:
+
+```
+FINNHUB_API_KEY=...
 ```
 
 ### Run
@@ -693,6 +710,7 @@ See [`.env.example`](../.env.example) for the full annotated list.
 - `AWS_REGION` → `us-east-1`
 - `NOVA_SONIC_MODEL_ID` → `amazon.nova-sonic-v1:0`
 - `BEDROCK_KB_ID` → `""` (empty = use local FAISS fallback)
+- `FINNHUB_API_KEY` → `""` (empty = skip primary and use Polygon fallback)
 - `VAULT_PATH` → `./vault`
 - `IRONCLAD_RUNTIME_PATH` → `./ironclad/ironclad-runtime`
 - `APP_HOST` → `0.0.0.0`
@@ -702,6 +720,16 @@ See [`.env.example`](../.env.example) for the full annotated list.
 ---
 
 ## 9. Execution Paths & Fallbacks
+
+### Market Data (Tool 1)
+
+```
+FINNHUB_API_KEY configured and Finnhub request succeeds?
+   YES → Return Finnhub daily latest bar
+   NO  → Try Polygon /v2/aggs/ticker/{ticker}/prev
+           If Polygon succeeds, response summary includes explicit EOD fallback note
+           If Polygon fails, return combined error with both provider messages
+```
 
 ### SEC RAG (Tool 2)
 
@@ -735,6 +763,7 @@ pytest tests/ -v
 ```
 
 Tests use `unittest.mock` — no real AWS credentials or Polygon API key needed.
+For market-data tests, Finnhub and Polygon responses are mocked.
 
 ---
 
@@ -743,7 +772,7 @@ Tests use `unittest.mock` — no real AWS credentials or Polygon API key needed.
 The intended 90-second demo flow (rehearse until reliable):
 
 1. **"What's the current trading volume and price action for AMD?"**  
-   → Tool 1 fires → Polygon.io data → Nova Sonic reads price, volume, change %.
+   → Tool 1 fires → Finnhub primary data (or Polygon fallback) → Nova Sonic reads price, volume, change %. If fallback is used, Nova Sonic states it is EOD data.
 
 2. **"What did Nvidia say about their datacenter supply chain in their latest 10-K?"**  
    → Tool 2 fires → Bedrock KB (or local FAISS) → Nova Sonic quotes from the actual filing.
