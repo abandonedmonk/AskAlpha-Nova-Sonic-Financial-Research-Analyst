@@ -175,20 +175,20 @@ Centralised settings using **Pydantic Settings** (`pydantic-settings`).
 
 All environment variables are validated at process startup — the app fails fast rather than mid-request.
 
-| Setting                 | Env var                 | Default                       | Purpose                        |
-| ----------------------- | ----------------------- | ----------------------------- | ------------------------------ |
-| `aws_access_key_id`     | `AWS_ACCESS_KEY_ID`     | required                      | AWS auth                       |
-| `aws_secret_access_key` | `AWS_SECRET_ACCESS_KEY` | required                      | AWS auth                       |
-| `aws_region`            | `AWS_REGION`            | `us-east-1`                   | Bedrock region                 |
-| `nova_sonic_model_id`   | `NOVA_SONIC_MODEL_ID`   | `amazon.nova-sonic-v1:0`      | Nova Sonic model               |
-| `bedrock_kb_id`         | `BEDROCK_KB_ID`         | `""`                          | Bedrock Knowledge Base ID      |
-| `polygon_api_key`       | `POLYGON_API_KEY`       | required                      | Polygon.io key                 |
-| `finnhub_api_key`       | `FINNHUB_API_KEY`       | `""`                          | Finnhub key (primary provider) |
-| `vault_path`            | `VAULT_PATH`            | `./vault`                     | Where notes are saved          |
-| `ironclad_runtime_path` | `IRONCLAD_RUNTIME_PATH` | `./ironclad/ironclad-runtime` | Wasm sandbox binary            |
-| `app_host`              | `APP_HOST`              | `0.0.0.0`                     | Server bind address            |
-| `app_port`              | `APP_PORT`              | `8000`                        | Server port                    |
-| `log_level`             | `LOG_LEVEL`             | `INFO`                        | Python log level               |
+| Setting                 | Env var                 | Default                       | Purpose                                 |
+| ----------------------- | ----------------------- | ----------------------------- | --------------------------------------- |
+| `aws_access_key_id`     | `AWS_ACCESS_KEY_ID`     | required                      | AWS auth                                |
+| `aws_secret_access_key` | `AWS_SECRET_ACCESS_KEY` | required                      | AWS auth                                |
+| `aws_region`            | `AWS_REGION`            | `us-east-1`                   | Bedrock region                          |
+| `nova_sonic_model_id`   | `NOVA_SONIC_MODEL_ID`   | `amazon.nova-2-sonic-v1:0`    | Nova Sonic v2 model (released Dec 2025) |
+| `bedrock_kb_id`         | `BEDROCK_KB_ID`         | `""`                          | Bedrock Knowledge Base ID               |
+| `polygon_api_key`       | `POLYGON_API_KEY`       | required                      | Polygon.io key                          |
+| `finnhub_api_key`       | `FINNHUB_API_KEY`       | `""`                          | Finnhub key (primary provider)          |
+| `vault_path`            | `VAULT_PATH`            | `./vault`                     | Where notes are saved                   |
+| `ironclad_runtime_path` | `IRONCLAD_RUNTIME_PATH` | `./ironclad/ironclad-runtime` | Wasm sandbox binary                     |
+| `app_host`              | `APP_HOST`              | `0.0.0.0`                     | Server bind address                     |
+| `app_port`              | `APP_PORT`              | `8000`                        | Server port                             |
+| `log_level`             | `LOG_LEVEL`             | `INFO`                        | Python log level                        |
 
 **Computed properties:**
 
@@ -252,15 +252,14 @@ Low-level wrapper around **boto3's Bedrock Runtime client**.
 
 **Class: `NovaSonicClient`**
 
-| Method                                                      | What it does                                                                                           |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `__init__()`                                                | Creates a `bedrock-runtime` boto3 client using credentials from `config.settings`.                     |
-| `build_session_start_event(system_prompt)`                  | Returns the `sessionStart` JSON event with inference config, system prompt, and all four tool schemas. |
-| `build_audio_input_start_event(prompt_id, content_id)`      | Returns the `promptStart` event that tells Nova Sonic to expect PCM-16 audio input at 16 kHz.          |
-| `build_audio_chunk_event(prompt_id, content_id, audio_b64)` | Wraps a base64-encoded audio chunk in an `audioInput` event.                                           |
-| `build_audio_content_end_event(prompt_id, content_id)`      | Signals the end of an audio content block.                                                             |
-| `build_tool_result_event(prompt_id, tool_use_id, result)`   | Wraps a tool execution result back into the stream as a `toolResult` event.                            |
-| `open_stream()`                                             | Calls `invoke_model_with_bidirectional_stream` and returns the raw boto3 stream handler.               |
+| Method                                                      | What it does                                                                                                       |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `__init__()`                                                | Creates a `bedrock-runtime` boto3 client using credentials from `config.settings`. Defaults to Nova 2 Sonic model. |
+| `build_session_start_event(system_prompt)`                  | Returns the `sessionStart` JSON event with inference config, system prompt, and all four tool schemas.             |
+| `build_audio_input_start_event(prompt_id, content_id)`      | Returns the `promptStart` event that tells Nova Sonic to expect PCM-16 audio input at 16 kHz.                      |
+| `build_audio_chunk_event(prompt_id, content_id, audio_b64)` | Wraps a base64-encoded audio chunk in an `audioInput` event.                                                       |
+| `build_tool_result_event(prompt_id, tool_use_id, result)`   | Wraps a tool execution result back into the stream as a `toolResult` event.                                        |
+| `open_stream()`                                             | Calls `invoke_model_with_bidirectional_stream` and returns the raw boto3 stream handler.                           |
 
 Audio format for input: `audio/lpcm`, 16 kHz, 16-bit, mono, base64-encoded.  
 Audio format for output: `audio/lpcm`, 24 kHz, 16-bit, mono (Nova Sonic TTS output).
@@ -731,7 +730,7 @@ See [`.env.example`](../.env.example) for the full annotated list.
 **Optional (have defaults):**
 
 - `AWS_REGION` → `us-east-1`
-- `NOVA_SONIC_MODEL_ID` → `amazon.nova-sonic-v1:0`
+- `NOVA_SONIC_MODEL_ID` → `amazon.nova-2-sonic-v1:0` (v2 released Dec 2025; v1 still supported)
 - `BEDROCK_KB_ID` → `""` (empty = use local FAISS fallback)
 - `FINNHUB_API_KEY` → `""` (empty = skip primary and use Polygon fallback)
 - `VAULT_PATH` → `./vault`

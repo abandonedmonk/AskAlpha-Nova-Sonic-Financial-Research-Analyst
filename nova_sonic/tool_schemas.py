@@ -83,9 +83,10 @@ EXECUTE_QUANTITATIVE_MODEL: dict[str, Any] = {
         "description": (
             "Runs a Monte Carlo simulation using Geometric Brownian Motion to "
             "project a stock's price distribution over a future time horizon. "
-            "Returns P10, P50, and P90 price percentiles plus the mean. Use "
-            "this when the user asks to 'run a simulation' or 'model the price "
-            "of [ticker] over the next N days'."
+            "Returns P10, P50, and P90 price percentiles, the mean, execution mode "
+            "(native or sandboxed), calculation engine (numpy or pure-Python), and "
+            "timing metrics. Use this when the user asks to 'run a simulation' or "
+            "'model the price of [ticker] over the next N days'."
         ),
         "inputSchema": {
             "json": {

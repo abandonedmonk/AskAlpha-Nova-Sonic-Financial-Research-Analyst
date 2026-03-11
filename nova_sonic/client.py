@@ -18,6 +18,9 @@ from botocore.exceptions import ClientError
 from config import settings
 from nova_sonic.tool_schemas import ALL_TOOLS
 
+# Nova 2 Sonic model ID (supports tool calling and improved speech quality)
+_DEFAULT_NOVA_SONIC_MODEL_ID = "amazon.nova-2-sonic-v1:0"
+
 logger = logging.getLogger(__name__)
 
 
@@ -31,7 +34,8 @@ class NovaSonicClient:
             aws_access_key_id=settings.aws_access_key_id,
             aws_secret_access_key=settings.aws_secret_access_key,
         )
-        self.model_id = settings.nova_sonic_model_id
+        # Use Nova 2 Sonic if available (released Dec 2, 2025), else fall back to v1
+        self.model_id = getattr(settings, 'nova_sonic_model_id', _DEFAULT_NOVA_SONIC_MODEL_ID)
 
     # ── Session start payload ─────────────────────────────────────────────────
 
@@ -39,7 +43,7 @@ class NovaSonicClient:
         self,
         system_prompt: str = (
             "You are an expert voice-driven financial research assistant. "
-            "Answer concisely. When you call a tool, wait for the result before speaking."
+        "Answer concisely. When you call a tool, wait for the result before speaking."
         ),
     ) -> dict[str, Any]:
         """
@@ -89,7 +93,6 @@ class NovaSonicClient:
                             "voiceId": "matthew",  # change to preferred Nova Sonic voice
                         }
                     },
-                    "toolUse": {"toolUseId": "", "name": "", "input": {}},
                 }
             }
         }
@@ -104,19 +107,6 @@ class NovaSonicClient:
                     "promptId": prompt_id,
                     "contentId": content_id,
                     "content": audio_b64,
-                }
-            }
-        }
-
-    @staticmethod
-    def build_audio_content_end_event(
-        prompt_id: str, content_id: str
-    ) -> dict[str, Any]:
-        return {
-            "event": {
-                "contentBlockDelta": {
-                    "promptId": prompt_id,
-                    "contentId": content_id,
                 }
             }
         }
@@ -143,6 +133,9 @@ class NovaSonicClient:
         """
         Open a bidirectional stream to Nova Sonic.
         Returns the raw boto3 stream handler — the session manager owns it.
+        
+        Note: The sessionStart event (sent first by the caller) configures
+        inference parameters, system prompt, and tool schemas.
         """
         try:
             response = self._client.invoke_model_with_bidirectional_stream(
