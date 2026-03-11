@@ -23,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 _POLYGON_BASE = "https://api.polygon.io"
 _FINNHUB_BASE = "https://finnhub.io/api/v1"
+_CACHE_TTL_SECONDS = 60
+_SNAPSHOT_CACHE: dict[str, dict[str, Any]] = {}
 
 
 def _build_snapshot_response(
@@ -65,18 +67,15 @@ async def _get_finnhub_snapshot(ticker: str) -> dict[str, Any]:
     if not settings.finnhub_api_key:
         return {"error": "Finnhub API key is not configured."}
 
-    to_epoch = int(time.time())
-    from_epoch = to_epoch - (7 * 24 * 60 * 60)
-    url = f"{_FINNHUB_BASE}/stock/candle"
+    # /quote is the free-tier real-time endpoint.
+    # /stock/candle requires a premium plan and will 403 on free keys.
+    url = f"{_FINNHUB_BASE}/quote"
 
     async with httpx.AsyncClient(timeout=10.0) as client:
         response = await client.get(
             url,
             params={
                 "symbol": ticker,
-                "resolution": "D",
-                "from": from_epoch,
-                "to": to_epoch,
                 "token": settings.finnhub_api_key,
             },
         )
@@ -103,22 +102,14 @@ async def _get_finnhub_snapshot(ticker: str) -> dict[str, Any]:
         detail = str(data.get("error", "")).strip()
         return {"error": detail or "Failed to fetch market data from Finnhub."}
 
-    status = str(data.get("s", "")).lower()
-    closes = data.get("c") or []
-    opens = data.get("o") or []
-    highs = data.get("h") or []
-    lows = data.get("l") or []
-    volumes = data.get("v") or []
+    # Quote response: c=current, o=open, h=high, l=low, pc=prev close, v not included
+    price = float(data.get("c") or 0.0)
+    open_price = float(data.get("o") or price)
+    high = float(data.get("h") or price)
+    low = float(data.get("l") or price)
 
-    if status != "ok" or not closes:
+    if price == 0.0:
         return {"error": f"No market data available for ticker '{ticker}' on Finnhub."}
-
-    idx = len(closes) - 1
-    price = float(closes[idx] or 0.0)
-    open_price = float(opens[idx] if idx < len(opens) else price)
-    high = float(highs[idx] if idx < len(highs) else price)
-    low = float(lows[idx] if idx < len(lows) else price)
-    volume = int(volumes[idx] if idx < len(volumes) else 0)
 
     return _build_snapshot_response(
         ticker,
@@ -126,9 +117,9 @@ async def _get_finnhub_snapshot(ticker: str) -> dict[str, Any]:
         open_price,
         high,
         low,
-        volume,
+        volume=0,  # /quote does not return volume; Polygon fallback does
         source="Finnhub",
-        data_freshness="daily latest",
+        data_freshness="real-time",
         change_reference="daily open",
     )
 
@@ -226,9 +217,18 @@ async def get_market_snapshot(ticker: str) -> dict[str, Any]:
     dict compatible with the ``query_live_market_data`` tool schema.
     """
     ticker = ticker.upper().strip()
+    cached_entry = _SNAPSHOT_CACHE.get(ticker)
+    if cached_entry and time.time() - cached_entry["timestamp"] < _CACHE_TTL_SECONDS:
+        logger.info("Market data cache hit for ticker=%s", ticker)
+        return dict(cached_entry["payload"])
+
     primary_result = await _get_finnhub_snapshot(ticker)
     if "error" not in primary_result:
-        return primary_result
+        _SNAPSHOT_CACHE[ticker] = {
+            "timestamp": time.time(),
+            "payload": primary_result,
+        }
+        return dict(primary_result)
 
     logger.warning(
         "Finnhub primary provider failed for ticker=%s, falling back to Polygon: %s",
@@ -238,7 +238,11 @@ async def get_market_snapshot(ticker: str) -> dict[str, Any]:
 
     fallback_result = await _get_polygon_prev_snapshot(ticker)
     if "error" not in fallback_result:
-        return fallback_result
+        _SNAPSHOT_CACHE[ticker] = {
+            "timestamp": time.time(),
+            "payload": fallback_result,
+        }
+        return dict(fallback_result)
 
     return {
         "error": (
