@@ -420,7 +420,7 @@ In both cases, returns:
 Two sub-steps:
 
 **Step 1 — Fetch live price + volatility**  
-Calls `get_market_snapshot()` for the current price. Then calls Polygon's `/v2/aggs` (90-day daily bars) to compute realised annualised volatility from log returns (`std(log_returns) * sqrt(252)`). Falls back to `σ = 0.30` if the data request fails.
+Calls `get_market_snapshot()` for the current price. Then calls Finnhub's `/api/v1/stock/candle` daily endpoint and computes realised annualised volatility from the last available closes (`std(log_returns) * sqrt(252)`). Falls back to `σ = 0.30` if the data request fails.
 
 **Step 2 — Run Monte Carlo**  
 Two execution paths:

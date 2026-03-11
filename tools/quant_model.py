@@ -14,13 +14,13 @@ Execution paths
    monte_carlo.py is imported directly and run in-process.
    Faster, but without the Wasm audit layer.
 
-Live price + volatility are fetched from Polygon.io before the simulation.
+Live price is fetched via Tool 1 and volatility is fetched from Finnhub daily bars
+before the simulation.
 """
 
 import asyncio
 import json
 import logging
-import os
 import subprocess
 import tempfile
 from pathlib import Path
@@ -39,44 +39,56 @@ async def _get_price_and_volatility(ticker: str) -> tuple[float, float]:
     """
     Returns (current_price, annualised_volatility).
 
-    Volatility is fetched from Polygon's /v2/aggs endpoint (90-day window).
+    Volatility is fetched from Finnhub daily candles (90-day window).
     Falls back to a conservative 30% if the API call fails.
     """
+    import datetime
     import httpx
 
     snapshot = await get_market_snapshot(ticker)
     current_price: float = snapshot.get("price", 100.0)
 
-    # Attempt to compute realised vol from the last 90 daily closes
+    # Attempt to compute realised vol from recent daily closes.
+    # We request a wider calendar window to reliably capture ~90 trading days.
     try:
-        url = (
-            f"https://api.polygon.io/v2/aggs/ticker/{ticker}/range/1/day"
-            f"/90daysago/today"
-        )
-        # Polygon expects actual dates; use a relative approach via their API
-        import datetime
+        if not settings.finnhub_api_key:
+            raise RuntimeError("FINNHUB_API_KEY not configured")
 
-        today = datetime.date.today().isoformat()
-        ninety_days_ago = (
-            datetime.date.today() - datetime.timedelta(days=90)
-        ).isoformat()
-        url = (
-            f"https://api.polygon.io/v2/aggs/ticker/{ticker}/range/1/day"
-            f"/{ninety_days_ago}/{today}"
-        )
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        from_ts = int((now_utc - datetime.timedelta(days=120)).timestamp())
+        to_ts = int(now_utc.timestamp())
+
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.get(
-                url, params={"apiKey": settings.polygon_api_key, "limit": 90}
+                "https://finnhub.io/api/v1/stock/candle",
+                params={
+                    "symbol": ticker,
+                    "resolution": "D",
+                    "from": from_ts,
+                    "to": to_ts,
+                    "token": settings.finnhub_api_key,
+                },
             )
-        results = resp.json().get("results", [])
-        if len(results) > 5:
+
+        if resp.status_code != 200:
+            raise RuntimeError(f"Finnhub HTTP {resp.status_code}")
+
+        payload = resp.json()
+        if payload.get("s") != "ok":
+            raise RuntimeError(f"Finnhub candle status={payload.get('s')}")
+
+        closes = payload.get("c", [])
+        cleaned_closes = [float(c) for c in closes if isinstance(c, (int, float)) and c > 0]
+        if len(cleaned_closes) > 5:
             import numpy as np  # type: ignore
 
-            closes = np.array([r["c"] for r in results], dtype=float)
-            log_returns = np.diff(np.log(closes))
+            close_arr = np.array(cleaned_closes[-90:], dtype=float)
+            log_returns = np.diff(np.log(close_arr))
             daily_vol = float(np.std(log_returns))
             annual_vol = daily_vol * (252**0.5)
             return current_price, annual_vol
+
+        raise RuntimeError("Finnhub returned insufficient daily closes")
     except Exception as exc:
         logger.warning(
             "Could not fetch historical volatility: %s — defaulting to 0.30", exc

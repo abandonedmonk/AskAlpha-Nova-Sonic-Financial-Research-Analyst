@@ -9,8 +9,8 @@ pydantic-settings>=2.2.0
 boto3>=1.34.0
 botocore>=1.34.0
 
-# ─── Polygon.io market data ───────────────────────────────────────────────────
-httpx>=0.27.0          # async HTTP client for Polygon REST calls
+# ─── Market data APIs ─────────────────────────────────────────────────────────
+httpx>=0.27.0          # async HTTP client for Finnhub/Polygon REST calls
 
 # ─── Monte Carlo compute ─────────────────────────────────────────────────────
 numpy>=1.26.0
