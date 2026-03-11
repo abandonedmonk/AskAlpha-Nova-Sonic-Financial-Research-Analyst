@@ -23,6 +23,7 @@ import json
 import logging
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
@@ -35,90 +36,115 @@ logger = logging.getLogger(__name__)
 # ── Fetch live price & compute historical volatility ─────────────────────────
 
 
+async def _fetch_tiingo_closes(ticker: str, from_iso: str, today: str) -> list[float]:
+    """Fetch adjusted daily closes from Tiingo. Returns [] on any failure."""
+    import httpx
+
+    if not settings.tiingo_api_key:
+        return []
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                f"https://api.tiingo.com/tiingo/daily/{ticker}/prices",
+                params={
+                    "startDate": from_iso,
+                    "endDate": today,
+                    "token": settings.tiingo_api_key,
+                },
+            )
+        if resp.status_code == 200:
+            payload = resp.json()
+            if isinstance(payload, list):
+                return [
+                    float(item["adjClose"])
+                    for item in payload
+                    if isinstance(item, dict)
+                    and isinstance(item.get("adjClose"), (int, float))
+                    and float(item["adjClose"]) > 0
+                ]
+    except Exception as exc:
+        logger.warning("Tiingo fetch failed: %s", exc)
+    return []
+
+
+async def _fetch_polygon_closes(ticker: str, from_iso: str, today: str) -> list[float]:
+    """Fetch daily closes from Polygon. Returns [] on any failure."""
+    import httpx
+
+    if not settings.polygon_api_key:
+        return []
+    try:
+        polygon_url = (
+            f"https://api.polygon.io/v2/aggs/ticker/{ticker}/range/1/day"
+            f"/{from_iso}/{today}"
+        )
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                polygon_url,
+                params={"apiKey": settings.polygon_api_key, "limit": 120},
+            )
+        if resp.status_code == 200:
+            results = resp.json().get("results", [])
+            return [
+                float(item["c"])
+                for item in results
+                if isinstance(item, dict)
+                and isinstance(item.get("c"), (int, float))
+                and float(item["c"]) > 0
+            ]
+    except Exception as exc:
+        logger.warning("Polygon vol-fetch failed: %s", exc)
+    return []
+
+
 async def _get_price_and_volatility(ticker: str) -> tuple[float, float]:
     """
     Returns (current_price, annualised_volatility).
 
-    Volatility is fetched from daily bars using provider fallback:
-    1) Tiingo daily prices (90-day window)
-    2) Polygon daily aggregates
-    Falls back to a conservative 30% if both fail.
+    Finnhub quote and Tiingo/Polygon bar fetches are fired in parallel with
+    asyncio.gather() so latency is dominated by the slowest single call
+    rather than the sum of all calls.
     """
     import datetime
-    import httpx
 
-    snapshot = await get_market_snapshot(ticker)
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    from_iso = (now_utc - datetime.timedelta(days=120)).date().isoformat()
+    today = now_utc.date().isoformat()
+
+    # Fire all three network calls at the same time.
+    snapshot, tiingo_closes, polygon_closes = await asyncio.gather(
+        get_market_snapshot(ticker),
+        _fetch_tiingo_closes(ticker, from_iso, today),
+        _fetch_polygon_closes(ticker, from_iso, today),
+    )
+
     current_price: float = snapshot.get("price", 100.0)
 
-    # Attempt to compute realised vol from recent daily closes.
-    # We request a 120-day window to reliably capture ~90 trading days.
-    try:
-        now_utc = datetime.datetime.now(datetime.timezone.utc)
-        from_dt = now_utc - datetime.timedelta(days=120)
-        today = now_utc.date().isoformat()
-        from_iso = from_dt.date().isoformat()
+    # Prefer Tiingo; fall back to Polygon if Tiingo returned too few bars.
+    cleaned_closes = tiingo_closes if len(tiingo_closes) > 5 else polygon_closes
 
-        cleaned_closes: list[float] = []
-
-        # Primary: Tiingo daily prices endpoint.
-        if settings.tiingo_api_key:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.get(
-                    f"https://api.tiingo.com/tiingo/daily/{ticker}/prices",
-                    params={
-                        "startDate": from_iso,
-                        "endDate": today,
-                        "token": settings.tiingo_api_key,
-                    },
-                )
-
-            if resp.status_code == 200:
-                payload = resp.json()
-                if isinstance(payload, list):
-                    cleaned_closes = [
-                        float(item.get("adjClose"))
-                        for item in payload
-                        if isinstance(item, dict)
-                        and isinstance(item.get("adjClose"), (int, float))
-                        and float(item.get("adjClose")) > 0
-                    ]
-
-        # Fallback: Polygon daily aggregates.
-        if len(cleaned_closes) <= 5 and settings.polygon_api_key:
-            polygon_url = (
-                f"https://api.polygon.io/v2/aggs/ticker/{ticker}/range/1/day"
-                f"/{from_iso}/{today}"
-            )
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.get(
-                    polygon_url,
-                    params={"apiKey": settings.polygon_api_key, "limit": 120},
-                )
-
-            if resp.status_code == 200:
-                payload = resp.json()
-                results = payload.get("results", [])
-                cleaned_closes = [
-                    float(item.get("c"))
-                    for item in results
-                    if isinstance(item, dict)
-                    and isinstance(item.get("c"), (int, float))
-                    and float(item.get("c")) > 0
-                ]
-
-        if len(cleaned_closes) > 5:
+    if len(cleaned_closes) > 5:
+        try:
             import numpy as np  # type: ignore
 
             close_arr = np.array(cleaned_closes[-90:], dtype=float)
             log_returns = np.diff(np.log(close_arr))
             daily_vol = float(np.std(log_returns))
             annual_vol = daily_vol * (252**0.5)
+            logger.info(
+                "Volatility computed from %d closes (source=%s) — annual_vol=%.4f",
+                len(cleaned_closes),
+                "Tiingo" if cleaned_closes is tiingo_closes else "Polygon",
+                annual_vol,
+            )
             return current_price, annual_vol
-
-        raise RuntimeError("No sufficient daily closes from Tiingo/Polygon")
-    except Exception as exc:
+        except Exception as exc:
+            logger.warning("Vol computation failed: %s — defaulting to 0.30", exc)
+    else:
         logger.warning(
-            "Could not fetch historical volatility: %s — defaulting to 0.30", exc
+            "Insufficient daily closes (tiingo=%d polygon=%d) — defaulting vol to 0.30",
+            len(tiingo_closes),
+            len(polygon_closes),
         )
 
     return current_price, 0.30  # sensible default
@@ -132,7 +158,7 @@ def _run_monte_carlo_native(
     volatility: float,
     days: int,
     simulations: int,
-) -> dict[str, float]:
+) -> dict[str, Any]:
     """Import and run compute/monte_carlo.py directly in-process."""
     import sys
 
@@ -155,7 +181,7 @@ def _run_monte_carlo_ironclad(
     volatility: float,
     days: int,
     simulations: int,
-) -> dict[str, float]:
+) -> dict[str, Any]:
     """
     Write a self-contained Python script to the ironclad sandbox temp dir
     and execute it via ironclad-runtime.  Captures JSON output from stdout.
@@ -182,6 +208,7 @@ try:
         "p50": float(np.percentile(finals, 50)),
         "p90": float(np.percentile(finals, 90)),
         "mean": float(np.mean(finals)),
+        "engine": "numpy",
     }}
 except ImportError:
     # Pure-Python GBM fallback (slower)
@@ -199,6 +226,7 @@ except ImportError:
         "p50": finals[int(n * 0.50)],
         "p90": finals[int(n * 0.90)],
         "mean": sum(finals) / n,
+        "engine": "pure_python",
     }}
 
 print(json.dumps(result))
@@ -252,10 +280,13 @@ async def run_monte_carlo(
         settings.ironclad_available,
     )
 
+    overall_started_at = time.perf_counter()
     current_price, volatility = await _get_price_and_volatility(ticker)
 
     loop = asyncio.get_event_loop()
+    simulation_started_at = time.perf_counter()
     if settings.ironclad_available:
+        execution_mode = "ironclad"
         logger.info("Routing through ironclad-runtime Wasm sandbox.")
         result = await loop.run_in_executor(
             None,
@@ -266,6 +297,7 @@ async def run_monte_carlo(
             simulations,
         )
     else:
+        execution_mode = "native"
         logger.info("Running Monte Carlo natively (ironclad-runtime not found).")
         result = await loop.run_in_executor(
             None,
@@ -275,6 +307,17 @@ async def run_monte_carlo(
             days,
             simulations,
         )
+
+    simulation_elapsed_seconds = time.perf_counter() - simulation_started_at
+    overall_elapsed_seconds = time.perf_counter() - overall_started_at
+    calculation_engine = str(result.get("engine", "unknown"))
+    logger.info(
+        "Monte Carlo complete — execution_mode=%s calculation_engine=%s simulation_time=%.2fs total_time=%.2fs",
+        execution_mode,
+        calculation_engine,
+        simulation_elapsed_seconds,
+        overall_elapsed_seconds,
+    )
 
     p10, p50, p90, mean = result["p10"], result["p50"], result["p90"], result["mean"]
 
@@ -291,6 +334,10 @@ async def run_monte_carlo(
         "days": days,
         "simulations": simulations,
         "current_price": round(current_price, 2),
+        "execution_mode": execution_mode,
+        "calculation_engine": calculation_engine,
+        "simulation_time_seconds": round(simulation_elapsed_seconds, 2),
+        "total_time_seconds": round(overall_elapsed_seconds, 2),
         "p10": round(p10, 2),
         "p50": round(p50, 2),
         "p90": round(p90, 2),
