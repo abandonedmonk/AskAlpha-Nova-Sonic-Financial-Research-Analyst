@@ -31,6 +31,8 @@ class MarketDataResponse(BaseModel):
     volume: int
     change_pct: str
     summary: str
+    data_source: str
+    data_freshness: str
 
 
 class SecRagRequest(BaseModel):
@@ -43,6 +45,7 @@ class SecRagResponse(BaseModel):
     company: str
     topic: str
     passages: list[str]
+    sources: list[str]
     summary: str
 
 
@@ -57,6 +60,10 @@ class QuantModelResponse(BaseModel):
     days: int
     simulations: int
     current_price: float
+    execution_mode: str
+    calculation_engine: str
+    simulation_time_seconds: float
+    total_time_seconds: float
     p10: float
     p50: float
     p90: float
