@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 # ── AWS Bedrock Knowledge Base path ───────────────────────────────────────────
 
+
 async def _query_bedrock_kb(company: str, topic: str, filing_type: str) -> list[str]:
     """
     Retrieve the top-3 most relevant passages from the Bedrock Knowledge Base.
@@ -43,6 +44,7 @@ async def _query_bedrock_kb(company: str, topic: str, filing_type: str) -> list[
     )
 
     try:
+        logger.info(f"Bedrock KB query: '{query_text}'")
         response = client.retrieve(
             knowledgeBaseId=settings.bedrock_kb_id,
             retrievalQuery={"text": query_text},
@@ -54,16 +56,50 @@ async def _query_bedrock_kb(company: str, topic: str, filing_type: str) -> list[
         logger.error("Bedrock KB retrieve failed: %s", exc)
         raise
 
+    MIN_SCORE = 0.50  # below this the match is not meaningfully relevant
+
+    retrieval_results = response.get("retrievalResults", [])
+    logger.info(f"Bedrock returned {len(retrieval_results)} results")
+    for i, result in enumerate(retrieval_results):
+        source = (
+            result.get("location", {})
+            .get("s3Location", {})
+            .get("uri", "unknown source")
+        )
+        score = result.get("score", "N/A")
+        logger.info(f"  [{i}] source={source}  score={score}")
+
     passages = []
-    for result in response.get("retrievalResults", []):
+    sources_used: list[str] = []
+    for result in retrieval_results:
+        score = result.get("score") or 0.0
+        if score < MIN_SCORE:
+            logger.warning(
+                "Skipping result with score %.4f (below threshold %.2f) — "
+                "company '%s' may not be in the knowledge base.",
+                score,
+                MIN_SCORE,
+                company,
+            )
+            continue
         text = result.get("content", {}).get("text", "")
+        source = result.get("location", {}).get("s3Location", {}).get("uri", "")
         if text:
             passages.append(text.strip())
+            sources_used.append(source)
 
-    return passages
+    if not passages and company:
+        logger.warning(
+            "No passages above score threshold for company='%s'. "
+            "The KB likely does not contain filings for this company.",
+            company,
+        )
+
+    return passages, sources_used
 
 
 # ── Local FAISS fallback path ─────────────────────────────────────────────────
+
 
 async def _query_local_faiss(company: str, topic: str, filing_type: str) -> list[str]:
     """
@@ -106,6 +142,7 @@ async def _query_local_faiss(company: str, topic: str, filing_type: str) -> list
 
 # ── Public tool function ──────────────────────────────────────────────────────
 
+
 async def query_sec_filings(
     company: str,
     topic: str,
@@ -126,25 +163,41 @@ async def query_sec_filings(
     """
     logger.info(
         "SEC RAG — company=%s topic=%s filing_type=%s bedrock_kb=%s",
-        company, topic, filing_type, settings.bedrock_kb_configured,
+        company,
+        topic,
+        filing_type,
+        settings.bedrock_kb_configured,
     )
 
+    sources_used: list[str] = []
     if settings.bedrock_kb_configured:
-        passages = await _query_bedrock_kb(company, topic, filing_type)
+        passages, sources_used = await _query_bedrock_kb(company, topic, filing_type)
     else:
         logger.warning("Bedrock KB not configured — falling back to local FAISS index.")
         passages = await _query_local_faiss(company, topic, filing_type)
 
     if not passages:
+        not_found_msg = (
+            f"No relevant filings found for '{company}' on '{topic}'. "
+            "This company may not be in the knowledge base."
+        )
         return {
             "company": company,
             "topic": topic,
             "passages": [],
-            "summary": f"No relevant passages found for '{topic}' in {company} filings.",
+            "sources": sources_used,
+            "summary": not_found_msg,
         }
 
+    # Surface which documents were actually used so Nova Sonic can be accurate
+    unique_sources = list(dict.fromkeys(
+        s.split("/")[-1].replace("_", " ").replace(".pdf", "")
+        for s in sources_used if s
+    ))
+    source_label = f" (sources: {', '.join(unique_sources)})" if unique_sources else ""
+
     summary = (
-        f"From {company}'s filing on {topic}: "
+        f"From {company}'s filing on {topic}{source_label}: "
         + " | ".join(p[:200] for p in passages[:3])
     )
 
@@ -152,5 +205,6 @@ async def query_sec_filings(
         "company": company,
         "topic": topic,
         "passages": passages,
+        "sources": sources_used,
         "summary": summary,
     }
