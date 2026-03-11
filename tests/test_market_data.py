@@ -9,16 +9,17 @@ from unittest.mock import AsyncMock, patch, MagicMock
 
 
 @pytest.fixture
-def finnhub_candle_response() -> dict:
-    """Minimal Finnhub daily candle response shape."""
+def finnhub_quote_response() -> dict:
+    """Minimal Finnhub /quote response shape (free-tier endpoint)."""
     return {
-        "s": "ok",
-        "c": [870.0, 875.5],
-        "o": [860.0, 872.0],
-        "h": [882.0, 880.0],
-        "l": [855.0, 869.0],
-        "v": [31_000_000, 32_000_000],
-        "t": [1709856000, 1709942400],
+        "c": 875.50,  # current price
+        "o": 860.0,  # open
+        "h": 882.0,  # high
+        "l": 855.0,  # low
+        "pc": 870.0,  # previous close
+        "d": 5.50,  # change
+        "dp": 0.63,  # change %
+        "t": 1709942400,
     }
 
 
@@ -28,22 +29,24 @@ def polygon_prev_agg_response() -> dict:
     return {
         "status": "OK",
         "ticker": "NVDA",
-        "results": [
-            {"o": 860.0, "h": 882.0, "l": 855.0, "c": 875.50, "v": 32_000_000}
-        ],
+        "results": [{"o": 860.0, "h": 882.0, "l": 855.0, "c": 875.50, "v": 32_000_000}],
     }
 
 
 @pytest.mark.asyncio
-async def test_get_market_snapshot_returns_expected_keys(finnhub_candle_response):
+async def test_get_market_snapshot_returns_expected_keys(finnhub_quote_response):
     """Finnhub primary success should return all required keys."""
     mock_response = MagicMock()
     mock_response.status_code = 200
-    mock_response.json.return_value = finnhub_candle_response
+    mock_response.json.return_value = finnhub_quote_response
 
     with (
         patch("tools.market_data.httpx.AsyncClient") as mock_client_cls,
-        patch.object(__import__("tools.market_data", fromlist=["settings"]).settings, "finnhub_api_key", "finnhub-test-key"),
+        patch.object(
+            __import__("tools.market_data", fromlist=["settings"]).settings,
+            "finnhub_api_key",
+            "finnhub-test-key",
+        ),
     ):
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=mock_response)
@@ -76,7 +79,11 @@ async def test_get_market_snapshot_falls_back_to_polygon_with_eod_notice(
 
     with (
         patch("tools.market_data.httpx.AsyncClient") as mock_client_cls,
-        patch.object(__import__("tools.market_data", fromlist=["settings"]).settings, "finnhub_api_key", "finnhub-test-key"),
+        patch.object(
+            __import__("tools.market_data", fromlist=["settings"]).settings,
+            "finnhub_api_key",
+            "finnhub-test-key",
+        ),
     ):
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(side_effect=[finnhub_fail, polygon_ok])
@@ -99,18 +106,21 @@ async def test_get_market_snapshot_ticker_normalised():
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.json.return_value = {
-        "s": "ok",
-        "c": [100.0],
-        "o": [99.0],
-        "h": [101.0],
-        "l": [98.0],
-        "v": [1_000_000],
-        "t": [1709942400],
+        "c": 100.0,
+        "o": 99.0,
+        "h": 101.0,
+        "l": 98.0,
+        "pc": 99.5,
+        "t": 1709942400,
     }
 
     with (
         patch("tools.market_data.httpx.AsyncClient") as mock_client_cls,
-        patch.object(__import__("tools.market_data", fromlist=["settings"]).settings, "finnhub_api_key", "finnhub-test-key"),
+        patch.object(
+            __import__("tools.market_data", fromlist=["settings"]).settings,
+            "finnhub_api_key",
+            "finnhub-test-key",
+        ),
     ):
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=mock_response)
@@ -142,7 +152,11 @@ async def test_get_market_snapshot_both_providers_fail_returns_combined_error():
 
     with (
         patch("tools.market_data.httpx.AsyncClient") as mock_client_cls,
-        patch.object(__import__("tools.market_data", fromlist=["settings"]).settings, "finnhub_api_key", "bad-key"),
+        patch.object(
+            __import__("tools.market_data", fromlist=["settings"]).settings,
+            "finnhub_api_key",
+            "bad-key",
+        ),
     ):
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(side_effect=[finnhub_fail, polygon_fail])
