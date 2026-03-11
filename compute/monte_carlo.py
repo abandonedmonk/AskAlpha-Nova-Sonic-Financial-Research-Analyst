@@ -28,10 +28,14 @@ where dt = 1/252.
 from __future__ import annotations
 
 import json
+import logging
 import math
 import random
 import sys
 from typing import Any
+
+
+logger = logging.getLogger(__name__)
 
 
 def simulate(
@@ -40,7 +44,7 @@ def simulate(
     days: int,
     simulations: int = 10_000,
     drift: float = 0.0,
-) -> dict[str, float]:
+) -> dict[str, Any]:
     """
     Run a Monte Carlo simulation using GBM.
 
@@ -57,11 +61,17 @@ def simulate(
     dict with keys: p10, p50, p90, mean  (all in price units)
     """
     try:
-        return _simulate_numpy(current_price, volatility, days, simulations, drift)
+        result = _simulate_numpy(current_price, volatility, days, simulations, drift)
+        result["engine"] = "numpy"
+        logger.info("Monte Carlo math engine=numpy")
+        return result
     except ImportError:
-        return _simulate_pure_python(
+        result = _simulate_pure_python(
             current_price, volatility, days, simulations, drift
         )
+        result["engine"] = "pure_python"
+        logger.info("Monte Carlo math engine=pure_python")
+        return result
 
 
 def _simulate_numpy(
