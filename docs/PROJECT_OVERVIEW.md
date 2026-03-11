@@ -420,7 +420,7 @@ In both cases, returns:
 Two sub-steps:
 
 **Step 1 — Fetch live price + volatility**  
-Calls `get_market_snapshot()` for the current price. Then calls Finnhub's `/api/v1/stock/candle` daily endpoint and computes realised annualised volatility from the last available closes (`std(log_returns) * sqrt(252)`). Falls back to `σ = 0.30` if the data request fails.
+Calls `get_market_snapshot()` for the current price. Then attempts Tiingo's `/tiingo/daily/{ticker}/prices` endpoint first (90-day window); if unavailable, it falls back to Polygon `/v2/aggs` daily bars. Realised annualised volatility is computed from closes (`std(log_returns) * sqrt(252)`). Falls back to `σ = 0.30` only if both providers fail.
 
 **Step 2 — Run Monte Carlo**  
 Two execution paths:

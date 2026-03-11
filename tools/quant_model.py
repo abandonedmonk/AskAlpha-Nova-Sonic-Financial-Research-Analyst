@@ -14,7 +14,7 @@ Execution paths
    monte_carlo.py is imported directly and run in-process.
    Faster, but without the Wasm audit layer.
 
-Live price is fetched via Tool 1 and volatility is fetched from Finnhub daily bars
+Live price is fetched via Tool 1 and volatility is fetched from Tiingo daily bars
 before the simulation.
 """
 
@@ -39,8 +39,10 @@ async def _get_price_and_volatility(ticker: str) -> tuple[float, float]:
     """
     Returns (current_price, annualised_volatility).
 
-    Volatility is fetched from Finnhub daily candles (90-day window).
-    Falls back to a conservative 30% if the API call fails.
+    Volatility is fetched from daily bars using provider fallback:
+    1) Tiingo daily prices (90-day window)
+    2) Polygon daily aggregates
+    Falls back to a conservative 30% if both fail.
     """
     import datetime
     import httpx
@@ -49,36 +51,61 @@ async def _get_price_and_volatility(ticker: str) -> tuple[float, float]:
     current_price: float = snapshot.get("price", 100.0)
 
     # Attempt to compute realised vol from recent daily closes.
-    # We request a wider calendar window to reliably capture ~90 trading days.
+    # We request a 120-day window to reliably capture ~90 trading days.
     try:
-        if not settings.finnhub_api_key:
-            raise RuntimeError("FINNHUB_API_KEY not configured")
-
         now_utc = datetime.datetime.now(datetime.timezone.utc)
-        from_ts = int((now_utc - datetime.timedelta(days=120)).timestamp())
-        to_ts = int(now_utc.timestamp())
+        from_dt = now_utc - datetime.timedelta(days=120)
+        today = now_utc.date().isoformat()
+        from_iso = from_dt.date().isoformat()
 
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(
-                "https://finnhub.io/api/v1/stock/candle",
-                params={
-                    "symbol": ticker,
-                    "resolution": "D",
-                    "from": from_ts,
-                    "to": to_ts,
-                    "token": settings.finnhub_api_key,
-                },
+        cleaned_closes: list[float] = []
+
+        # Primary: Tiingo daily prices endpoint.
+        if settings.tiingo_api_key:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(
+                    f"https://api.tiingo.com/tiingo/daily/{ticker}/prices",
+                    params={
+                        "startDate": from_iso,
+                        "endDate": today,
+                        "token": settings.tiingo_api_key,
+                    },
+                )
+
+            if resp.status_code == 200:
+                payload = resp.json()
+                if isinstance(payload, list):
+                    cleaned_closes = [
+                        float(item.get("adjClose"))
+                        for item in payload
+                        if isinstance(item, dict)
+                        and isinstance(item.get("adjClose"), (int, float))
+                        and float(item.get("adjClose")) > 0
+                    ]
+
+        # Fallback: Polygon daily aggregates.
+        if len(cleaned_closes) <= 5 and settings.polygon_api_key:
+            polygon_url = (
+                f"https://api.polygon.io/v2/aggs/ticker/{ticker}/range/1/day"
+                f"/{from_iso}/{today}"
             )
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(
+                    polygon_url,
+                    params={"apiKey": settings.polygon_api_key, "limit": 120},
+                )
 
-        if resp.status_code != 200:
-            raise RuntimeError(f"Finnhub HTTP {resp.status_code}")
+            if resp.status_code == 200:
+                payload = resp.json()
+                results = payload.get("results", [])
+                cleaned_closes = [
+                    float(item.get("c"))
+                    for item in results
+                    if isinstance(item, dict)
+                    and isinstance(item.get("c"), (int, float))
+                    and float(item.get("c")) > 0
+                ]
 
-        payload = resp.json()
-        if payload.get("s") != "ok":
-            raise RuntimeError(f"Finnhub candle status={payload.get('s')}")
-
-        closes = payload.get("c", [])
-        cleaned_closes = [float(c) for c in closes if isinstance(c, (int, float)) and c > 0]
         if len(cleaned_closes) > 5:
             import numpy as np  # type: ignore
 
@@ -88,7 +115,7 @@ async def _get_price_and_volatility(ticker: str) -> tuple[float, float]:
             annual_vol = daily_vol * (252**0.5)
             return current_price, annual_vol
 
-        raise RuntimeError("Finnhub returned insufficient daily closes")
+        raise RuntimeError("No sufficient daily closes from Tiingo/Polygon")
     except Exception as exc:
         logger.warning(
             "Could not fetch historical volatility: %s — defaulting to 0.30", exc
