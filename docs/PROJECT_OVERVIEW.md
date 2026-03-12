@@ -175,20 +175,45 @@ Centralised settings using **Pydantic Settings** (`pydantic-settings`).
 
 All environment variables are validated at process startup — the app fails fast rather than mid-request.
 
-| Setting                 | Env var                 | Default                       | Purpose                                 |
-| ----------------------- | ----------------------- | ----------------------------- | --------------------------------------- |
-| `aws_access_key_id`     | `AWS_ACCESS_KEY_ID`     | required                      | AWS auth                                |
-| `aws_secret_access_key` | `AWS_SECRET_ACCESS_KEY` | required                      | AWS auth                                |
-| `aws_region`            | `AWS_REGION`            | `us-east-1`                   | Bedrock region                          |
-| `nova_sonic_model_id`   | `NOVA_SONIC_MODEL_ID`   | `amazon.nova-2-sonic-v1:0`    | Nova Sonic v2 model (released Dec 2025) |
-| `bedrock_kb_id`         | `BEDROCK_KB_ID`         | `""`                          | Bedrock Knowledge Base ID               |
-| `polygon_api_key`       | `POLYGON_API_KEY`       | required                      | Polygon.io key                          |
-| `finnhub_api_key`       | `FINNHUB_API_KEY`       | `""`                          | Finnhub key (primary provider)          |
-| `vault_path`            | `VAULT_PATH`            | `./vault`                     | Where notes are saved                   |
-| `ironclad_runtime_path` | `IRONCLAD_RUNTIME_PATH` | `./ironclad/ironclad-runtime` | Wasm sandbox binary                     |
-| `app_host`              | `APP_HOST`              | `0.0.0.0`                     | Server bind address                     |
-| `app_port`              | `APP_PORT`              | `8000`                        | Server port                             |
-| `log_level`             | `LOG_LEVEL`             | `INFO`                        | Python log level                        |
+**AWS & core**
+
+| Setting                 | Env var                 | Default                  | Purpose             |
+| ----------------------- | ----------------------- | ------------------------ | ------------------- |
+| `aws_access_key_id`     | `AWS_ACCESS_KEY_ID`     | required                 | AWS auth            |
+| `aws_secret_access_key` | `AWS_SECRET_ACCESS_KEY` | required                 | AWS auth            |
+| `aws_region`            | `AWS_REGION`            | `us-east-1`              | Bedrock region      |
+| `nova_sonic_model_id`   | `NOVA_SONIC_MODEL_ID`   | `amazon.nova-sonic-v1:0` | Nova Sonic model ID |
+
+**Note generation (Vault Logger LLM)**
+
+| Setting                    | Env var                    | Default                          | Purpose                                              |
+| -------------------------- | -------------------------- | -------------------------------- | ---------------------------------------------------- |
+| `note_llm_provider`        | `NOTE_LLM_PROVIDER`        | `groq`                           | Which LLM to use: `groq`, `nova_lite`, or `none`     |
+| `note_llm_timeout_seconds` | `NOTE_LLM_TIMEOUT_SECONDS` | `20`                             | HTTP timeout for the note-generation LLM call        |
+| `groq_api_key`             | `GROQ_API_KEY`             | `""`                             | Groq API key (primary note-generation provider)      |
+| `groq_model`               | `GROQ_MODEL`               | `llama-3.3-70b-versatile`        | Groq model used to compose notes                     |
+| `groq_base_url`            | `GROQ_BASE_URL`            | `https://api.groq.com/openai/v1` | Groq OpenAI-compatible base URL                      |
+| `nova_lite_model_id`       | `NOVA_LITE_MODEL_ID`       | `amazon.nova-lite-v1:0`          | Bedrock Nova Lite model ID (future integration path) |
+
+**Bedrock / data providers**
+
+| Setting                | Env var                | Default                                                                    | Purpose                                |
+| ---------------------- | ---------------------- | -------------------------------------------------------------------------- | -------------------------------------- |
+| `bedrock_kb_id`        | `BEDROCK_KB_ID`        | `""`                                                                       | Bedrock Knowledge Base ID              |
+| `bedrock_kb_model_arn` | `BEDROCK_KB_MODEL_ARN` | `arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v2:0` | Embedding model ARN for KB retrieval   |
+| `polygon_api_key`      | `POLYGON_API_KEY`      | required                                                                   | Polygon.io key                         |
+| `finnhub_api_key`      | `FINNHUB_API_KEY`      | `""`                                                                       | Finnhub key (primary market data)      |
+| `tiingo_api_key`       | `TIINGO_API_KEY`       | `""`                                                                       | Tiingo key (historical vol for Tool 3) |
+
+**App / infrastructure**
+
+| Setting                 | Env var                 | Default                       | Purpose               |
+| ----------------------- | ----------------------- | ----------------------------- | --------------------- |
+| `vault_path`            | `VAULT_PATH`            | `./vault`                     | Where notes are saved |
+| `ironclad_runtime_path` | `IRONCLAD_RUNTIME_PATH` | `./ironclad/ironclad-runtime` | Wasm sandbox binary   |
+| `app_host`              | `APP_HOST`              | `0.0.0.0`                     | Server bind address   |
+| `app_port`              | `APP_PORT`              | `8000`                        | Server port           |
+| `log_level`             | `LOG_LEVEL`             | `INFO`                        | Python log level      |
 
 **Computed properties:**
 
@@ -288,16 +313,16 @@ IDLE → LISTENING → MODEL_THINKING → TOOL_EXECUTING → SPEAKING → LISTEN
 
 **Class: `NovaSonicSession`**
 
-| Method / Attribute             | What it does                                                                                                                                                                                 |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `__init__(tool_handlers)`      | Takes a `dispatch` callable from the Event Router. Creates a `NovaSonicClient`, an `asyncio.Queue` for output audio, and initialises `_consumer_task = None`.                               |
-| `start()`                      | Opens the boto3 bidirectional stream, sends `sessionStart` (inference config + tools), sends `promptStart` (audio I/O format), transitions to `LISTENING`, stores & starts `_consume_output`. |
-| `close()`                      | Cancels the consumer task, closes the boto3 stream body, sets state to `CLOSED`.                                                                                                             |
-| `send_audio_chunk(pcm_bytes)`  | Base64-encodes and forwards a PCM chunk to Nova Sonic. Drops chunks while in `TOOL_EXECUTING` or `MODEL_THINKING` state.                                                                     |
-| `audio_output_queue`           | `asyncio.Queue[bytes]` — TTS audio chunks enqueued by `_consume_output`, drained by the WebSocket send loop.                                                                                 |
+| Method / Attribute             | What it does                                                                                                                                                                                                                                        |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `__init__(tool_handlers)`      | Takes a `dispatch` callable from the Event Router. Creates a `NovaSonicClient`, an `asyncio.Queue` for output audio, and initialises `_consumer_task = None`.                                                                                       |
+| `start()`                      | Opens the boto3 bidirectional stream, sends `sessionStart` (inference config + tools), sends `promptStart` (audio I/O format), transitions to `LISTENING`, stores & starts `_consume_output`.                                                       |
+| `close()`                      | Cancels the consumer task, closes the boto3 stream body, sets state to `CLOSED`.                                                                                                                                                                    |
+| `send_audio_chunk(pcm_bytes)`  | Base64-encodes and forwards a PCM chunk to Nova Sonic. Drops chunks while in `TOOL_EXECUTING` or `MODEL_THINKING` state.                                                                                                                            |
+| `audio_output_queue`           | `asyncio.Queue[bytes]` — TTS audio chunks enqueued by `_consume_output`, drained by the WebSocket send loop.                                                                                                                                        |
 | `_consume_output()`            | Background task. Spawns a daemon thread to iterate the blocking boto3 stream, forwarding parsed events via an `asyncio.Queue`. Routes `audioOutput` to the queue, `toolUse` to `_handle_tool_use`, handles `contentBlockStop`/`generationComplete`. |
-| `_handle_tool_use(tool_event)` | Extracts `name`, `toolUseId`, and `input` from the event. Calls `self._tool_handlers(name, input)`. Returns the result via `build_tool_result_event`.                                        |
-| `state`                        | Read-only property returning the current `SessionState`.                                                                                                                                     |
+| `_handle_tool_use(tool_event)` | Extracts `name`, `toolUseId`, and `input` from the event. Calls `self._tool_handlers(name, input)`. Returns the result via `build_tool_result_event`.                                                                                               |
+| `state`                        | Read-only property returning the current `SessionState`.                                                                                                                                                                                            |
 
 ---
 
@@ -316,13 +341,16 @@ Pydantic models for **all data that crosses the tool boundary**.
 | `VaultLogRequest` / `VaultLogResponse`     | Tool 4 I/O + `/vault/log` REST endpoint |
 | `ToolResult`                               | Generic envelope for any tool result    |
 
+`VaultLogRequest` fields: `content` (str), `tags` (list[str]), `title` (str, optional), `context` (dict — optional session metadata forwarded from the router).  
+`VaultLogResponse` fields: `saved` (bool), `filepath` (str), `message` (str), `llm_provider` (str), `llm_model` (str).
+
 ---
 
 #### `event_router/router.py`
 
 The central dispatch hub. Exposes three things:
 
-**1. `dispatch(tool_name, tool_input)` — async function**  
+**1. `dispatch(tool_name, tool_input, session_context)` — async function**  
 Routes a Nova Sonic tool-call event to the correct backend.
 
 ```
@@ -331,6 +359,8 @@ Routes a Nova Sonic tool-call event to the correct backend.
 "execute_quantitative_model" → tools.quant_model.run_monte_carlo()
 "log_research_insight"       → tools.vault_logger.log_insight()
 ```
+
+`session_context` is an optional `dict` populated by `NovaSonicSession` for the active conversation. It is passed directly into `log_insight()` as the `context` argument so the vault logger can embed session metadata (session ID, tool history, latest tool call) in the generated note. It is silently ignored for the other three tools.
 
 If the tool name is unknown, returns `{"error": "Unknown tool: ..."}`.  
 If the backend raises, catches the exception and returns `{"error": "<message>"}` — Nova Sonic always gets a response.
@@ -457,28 +487,95 @@ Returns:
 
 #### `tools/vault_logger.py` — Tool 4
 
-**Function: `log_insight(content, tags, title) -> dict`**
+**Function: `log_insight(content, tags, title, context) -> dict`**
 
-Writes an Obsidian-compatible Markdown note with YAML front matter to `settings.vault_path`.
+Generates a structured, AI-written Obsidian-compatible Markdown note and writes it to `settings.vault_path`. This is the sophisticated core of the vault system — notes are not a raw transcript dump, they are LLM-composed research documents shaped by session and tool context.
+
+**Parameters:**
+
+| Parameter | Type                | Description                                                                            |
+| --------- | ------------------- | -------------------------------------------------------------------------------------- |
+| `content` | `str`               | Raw research content or user utterance to be structured                                |
+| `tags`    | `list[str] \| None` | Explicit tags; ticker tags are also auto-injected                                      |
+| `title`   | `str \| None`       | Optional title; auto-generated from tickers + date if absent                           |
+| `context` | `dict \| None`      | Session context: `session_id`, `tool_history`, `latest_tool_call`, `last_user_summary` |
 
 **Generated note format:**
 
 ```markdown
 ---
-tags: [semiconductors, nvidia]
+title: "NVDA Supply Chain Note"
 date: 2025-03-01T14:32:00
+updated: 2025-03-01T14:32:00
 source: Nova Sonic Research Terminal
+note_type: research_insight
+session_id: "session-42"
+tags: ["semiconductors", "nvidia", "nvda"]
+tickers: ["NVDA"]
+tools_used: ["query_live_market_data"]
+llm_provider: "groq"
+llm_model: "llama-3.3-70b-versatile"
 ---
 
-# Note title
+# NVDA Supply Chain Note
 
-[content body]
+## Executive Summary
+
+## Context Snapshot
+
+## Evidence and Tool Outputs
+
+## Key Takeaways
+
+## Risks and Unknowns
+
+## Suggested Next Steps
+
+## User Additions
 ```
 
-Filename derives from the title (sanitised, max 60 chars) or an ISO timestamp if no title is given.  
-Uses `aiofiles` for non-blocking async writes.
+**LLM provider strategy:**
 
-Returns `{"saved": true, "filepath": "...", "message": "..."}`.
+`NOTE_LLM_PROVIDER` controls which backend composes the note body:
+
+| Provider value   | Behaviour                                                                                                               |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `groq` (default) | Calls Groq `/chat/completions` with `llama-3.3-70b-versatile`; falls through to fallback if key is absent or call fails |
+| `nova_lite`      | Placeholder — tries Nova Lite first, then falls through to Groq                                                         |
+| `none`           | Skips LLM entirely; uses the deterministic fallback body                                                                |
+
+If the chosen provider fails (missing key, network error, timeout), the system automatically falls through to the structural fallback — `log_insight` never raises.
+
+**Helper functions:**
+
+| Function                                 | Purpose                                                                                                           |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `_safe_filename(title, ts)`              | Sanitises title to a safe `*.md` filename, max 60 chars; falls back to `note_<timestamp>.md`                      |
+| `_yaml_list(values)`                     | Formats a Python list as a YAML inline list with double-quoted, escaped items                                     |
+| `_extract_tickers(content, context)`     | Scans content for `[A-Z]{1,5}` words and inspects `context.tool_history[].input.ticker`; deduplicates, caps at 8  |
+| `_extract_tools_used(context)`           | Collects unique tool names from `context.tool_history` and `context.latest_tool_call`                             |
+| `_resolve_title(title, tickers, ts)`     | Returns the given title, or `"<TICKER> Research Insight - <date>"`, or `"Research Insight - <date>"`              |
+| `_build_front_matter(...)`               | Renders the full YAML front matter block with all metadata fields                                                 |
+| `_build_llm_prompt(...)`                 | Builds the JSON-payload prompt that instructs the LLM to write all seven required sections                        |
+| `_ensure_required_sections(body, title)` | Validates that all seven `## …` headings exist; appends any missing ones; guarantees Obsidian query compatibility |
+| `_fallback_body(...)`                    | Produces a deterministic structured note (no LLM) from raw inputs when all LLM providers fail or are disabled     |
+| `_compose_with_groq(prompt)`             | Calls Groq OpenAI-compatible API; returns `(markdown_body, model_name)`                                           |
+| `_compose_with_nova_lite(prompt)`        | Placeholder stub — returns `(None, model_name)`; tagged `TODO` for Bedrock Nova Lite text-gen integration         |
+| `_compose_structured_body(...)`          | Orchestrates provider selection, calls the right composer, returns `(body, provider, model)`                      |
+
+**Return value:**
+
+```json
+{
+  "saved": true,
+  "filepath": "/path/to/vault/NVDA_Supply_Chain_Note.md",
+  "message": "Note saved as 'NVDA_Supply_Chain_Note.md' in vault.",
+  "llm_provider": "groq",
+  "llm_model": "llama-3.3-70b-versatile"
+}
+```
+
+Uses `aiofiles` for non-blocking async writes. Creates the vault directory if it does not yet exist.
 
 ---
 
@@ -571,38 +668,40 @@ Unit tests for `compute/monte_carlo.py`.
 
 Unit tests for `tools/vault_logger.py`.
 
-| Test                                  | What it checks                                         |
-| ------------------------------------- | ------------------------------------------------------ |
-| `test_log_insight_creates_file`       | A `.md` file is created and contains the right content |
-| `test_log_insight_front_matter`       | YAML front matter is present and correctly formatted   |
-| `test_log_insight_no_tags`            | Works without tags                                     |
-| `test_log_insight_filename_sanitised` | Special characters in title do not break the filename  |
+| Test                                         | What it checks                                                                         |
+| -------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `test_log_insight_creates_file`              | A `.md` file is created; includes content, `## Executive Summary`, `## User Additions` |
+| `test_log_insight_front_matter`              | YAML front matter is present with `source`, `tags`, and `note_type: research_insight`  |
+| `test_log_insight_no_tags`                   | Works without tags — empty tag list is handled gracefully                              |
+| `test_log_insight_filename_sanitised`        | Special characters in title (`/`, `<`, `>`, `&`) do not appear in the filename         |
+| `test_log_insight_includes_context_metadata` | `session_id` and `tools_used` from `context` appear in the saved note                  |
 
 #### `tests/test_event_router.py`
 
 Integration tests for `event_router/router.py`.
 
-| Test                                         | What it checks                                         |
-| -------------------------------------------- | ------------------------------------------------------ |
-| `test_dispatch_known_tool_delegates`         | `dispatch()` calls the right backend                   |
-| `test_dispatch_unknown_tool_returns_error`   | Unknown tool name returns `{"error": ...}`             |
-| `test_dispatch_tool_exception_returns_error` | Backend exception is caught and returned as error dict |
-| `test_health_endpoint`                       | `GET /health` returns 200 with the tool list           |
+| Test                                            | What it checks                                                                               |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `test_dispatch_known_tool_delegates`            | `dispatch()` calls the correct backend for a known tool                                      |
+| `test_dispatch_unknown_tool_returns_error`      | Unknown tool name returns `{"error": "Unknown tool: ..."}` without raising                   |
+| `test_dispatch_tool_exception_returns_error`    | Backend exception is caught and returned as `{"error": ...}` dict                            |
+| `test_dispatch_log_tool_passes_session_context` | `dispatch("log_research_insight", ..., context)` forwards `context` kwarg to `log_insight()` |
+| `test_health_endpoint`                          | `GET /health` returns 200 and lists all four tool names                                      |
 
 #### `tests/smoke_test_tools.py`
 
 Live integration test suite — makes **real network calls** with actual API keys. Not mocked. Run manually when you want to verify end-to-end tool behaviour.
 
-| Test                             | What it checks                                                                   |
-| -------------------------------- | -------------------------------------------------------------------------------- |
-| Tool 1A — Live quote (GOOGL)     | Finnhub primary path returns price, open, high, low, change_pct                  |
-| Tool 1B — Cache hit              | Second identical call within 60 s is served from `_SNAPSHOT_CACHE`               |
-| Tool 1C — Polygon fallback       | Polygon EOD path is used when Finnhub key is absent; includes EOD disclosure     |
-| Tool 2A — INTC SEC RAG           | Bedrock KB returns relevant passages for a company that is in the knowledge base |
-| Tool 2B — Unknown company        | Score threshold (`MIN_SCORE = 0.50`) filters out noise for unknown companies     |
-| Tool 3A — AMD Monte Carlo (10 k) | Native numpy path runs 10,000 paths; reports engine, timing, and percentiles     |
-| Tool 3B — Low simulations        | 100-path run completes without error                                             |
-| Tool 4A — Vault logger           | Note is written to `vault/` with correct YAML front matter                       |
+| Test                             | What it checks                                                                                             |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Tool 1A — Live quote (GOOGL)     | Finnhub primary path returns price, open, high, low, change_pct                                            |
+| Tool 1B — Cache hit              | Second identical call within 60 s is served from `_SNAPSHOT_CACHE`                                         |
+| Tool 1C — Polygon fallback       | Polygon EOD path is used when Finnhub key is absent; includes EOD disclosure                               |
+| Tool 2A — INTC SEC RAG           | Bedrock KB returns relevant passages for a company that is in the knowledge base                           |
+| Tool 2B — Unknown company        | Score threshold (`MIN_SCORE = 0.50`) filters out noise for unknown companies                               |
+| Tool 3A — AMD Monte Carlo (10 k) | Native numpy path runs 10,000 paths; reports engine, timing, and percentiles                               |
+| Tool 3B — Low simulations        | 100-path run completes without error                                                                       |
+| Tool 4A — Vault logger           | Note is written with rich YAML front matter, seven structured sections, and LLM-generated content via Groq |
 
 ---
 
@@ -614,12 +713,12 @@ Runtime directory. All Markdown notes created by Tool 4 (`log_research_insight`)
 
 ## 5. The Four Financial Tools
 
-| #   | Tool name                    | Backend file            | External service           | Fallback                                        |
-| --- | ---------------------------- | ----------------------- | -------------------------- | ----------------------------------------------- |
-| 1   | `query_live_market_data`     | `tools/market_data.py`  | Finnhub real-time quotes   | Polygon previous-day aggregate (EOD disclosure) |
-| 2   | `analyze_sec_filings_rag`    | `tools/sec_rag.py`      | AWS Bedrock Knowledge Base | Local FAISS + LlamaIndex                        |
-| 3   | `execute_quantitative_model` | `tools/quant_model.py`  | ironclad-runtime (Wasm)    | Native Python in-process                        |
-| 4   | `log_research_insight`       | `tools/vault_logger.py` | Local filesystem           | None needed                                     |
+| #   | Tool name                    | Backend file            | External service                               | Fallback                                        |
+| --- | ---------------------------- | ----------------------- | ---------------------------------------------- | ----------------------------------------------- |
+| 1   | `query_live_market_data`     | `tools/market_data.py`  | Finnhub real-time quotes                       | Polygon previous-day aggregate (EOD disclosure) |
+| 2   | `analyze_sec_filings_rag`    | `tools/sec_rag.py`      | AWS Bedrock Knowledge Base                     | Local FAISS + LlamaIndex                        |
+| 3   | `execute_quantitative_model` | `tools/quant_model.py`  | ironclad-runtime (Wasm)                        | Native Python in-process                        |
+| 4   | `log_research_insight`       | `tools/vault_logger.py` | Groq LLM (note composition) + local filesystem | Structural fallback template (no LLM)           |
 
 ---
 
@@ -730,14 +829,25 @@ See [`.env.example`](../.env.example) for the full annotated list.
 **Optional (have defaults):**
 
 - `AWS_REGION` → `us-east-1`
-- `NOVA_SONIC_MODEL_ID` → `amazon.nova-2-sonic-v1:0` (v2 released Dec 2025; v1 still supported)
+- `NOVA_SONIC_MODEL_ID` → `amazon.nova-sonic-v1:0`
 - `BEDROCK_KB_ID` → `""` (empty = use local FAISS fallback)
+- `BEDROCK_KB_MODEL_ARN` → `arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v2:0`
 - `FINNHUB_API_KEY` → `""` (empty = skip primary and use Polygon fallback)
+- `TIINGO_API_KEY` → `""` (used for historical volatility in Tool 3; falls back to Polygon)
 - `VAULT_PATH` → `./vault`
 - `IRONCLAD_RUNTIME_PATH` → `./ironclad/ironclad-runtime`
 - `APP_HOST` → `0.0.0.0`
 - `APP_PORT` → `8000`
 - `LOG_LEVEL` → `INFO`
+
+**Vault Logger / Note Generation:**
+
+- `NOTE_LLM_PROVIDER` → `groq` (`groq` | `nova_lite` | `none`)
+- `NOTE_LLM_TIMEOUT_SECONDS` → `20`
+- `GROQ_API_KEY` → `""` (required for AI-composed notes; falls back to structural template if absent)
+- `GROQ_MODEL` → `llama-3.3-70b-versatile`
+- `GROQ_BASE_URL` → `https://api.groq.com/openai/v1`
+- `NOVA_LITE_MODEL_ID` → `amazon.nova-lite-v1:0` (placeholder, not yet wired)
 
 ---
 

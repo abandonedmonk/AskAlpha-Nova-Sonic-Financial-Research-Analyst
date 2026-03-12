@@ -75,12 +75,18 @@ class VaultLogRequest(BaseModel):
     content: str
     tags: list[str] = Field(default_factory=list)
     title: str = ""
+    context: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Optional session/tool context used to enrich the generated note.",
+    )
 
 
 class VaultLogResponse(BaseModel):
     saved: bool
     filepath: str
     message: str
+    llm_provider: str = "none"
+    llm_model: str = "none"
 
 
 # ── Generic tool result envelope ─────────────────────────────────────────────

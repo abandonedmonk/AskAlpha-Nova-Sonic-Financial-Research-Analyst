@@ -25,6 +25,18 @@ class Settings(BaseSettings):
     # ── Nova Sonic ────────────────────────────────────────────────────────────
     nova_sonic_model_id: str = "amazon.nova-sonic-v1:0"
 
+    # ── Note generation (Vault Logger) ───────────────────────────────────────
+    note_llm_provider: str = "groq"  # groq | nova_lite | none
+    note_llm_timeout_seconds: int = 20
+
+    # Groq API (primary for now)
+    groq_api_key: str = ""
+    groq_model: str = "llama-3.3-70b-versatile"
+    groq_base_url: str = "https://api.groq.com/openai/v1"
+
+    # Nova Lite placeholder (future integration)
+    nova_lite_model_id: str = "amazon.nova-lite-v1:0"
+
     # ── Bedrock Knowledge Base ────────────────────────────────────────────────
     bedrock_kb_id: str = ""
     bedrock_kb_model_arn: str = (
@@ -39,7 +51,7 @@ class Settings(BaseSettings):
     # ── Tiingo ────────────────────────────────────────────────────────────────────────
     tiingo_api_key: str = ""
     # ── Vault ─────────────────────────────────────────────────────────────────
-    vault_path: Path = Path("./vault")
+    vault_path: Path = Path("G:/My Drive/Obsidian/Junkyard/")
 
     # ── Ironclad Wasm sandbox ─────────────────────────────────────────────────
     ironclad_runtime_path: Path = Path("./ironclad/ironclad-runtime")

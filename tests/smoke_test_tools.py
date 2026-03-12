@@ -217,6 +217,7 @@ async def smoke_vault_logger() -> None:
     from config import settings
 
     print(f"  vault path: {settings.vault_path.resolve()}")
+    require_note_llm = os.getenv("REQUIRE_NOTE_LLM", "0") == "1"
 
     # Test A: basic write
     try:
@@ -229,7 +230,18 @@ async def smoke_vault_logger() -> None:
             p = Path(result["filepath"])
             exists = p.exists()
             size = p.stat().st_size if exists else 0
-            _ok("basic write", f"file={p.name}  size={size}B  on_disk={exists}")
+            provider = result.get("llm_provider", "none")
+            model = result.get("llm_model", "none")
+            if require_note_llm and provider == "none":
+                _fail(
+                    "basic write",
+                    "LLM fallback path used (llm_provider=none) while REQUIRE_NOTE_LLM=1",
+                )
+            else:
+                _ok(
+                    "basic write",
+                    f"file={p.name}  size={size}B  on_disk={exists}  llm={provider}:{model}",
+                )
             if not exists:
                 _fail(
                     "file exists on disk",
@@ -244,7 +256,18 @@ async def smoke_vault_logger() -> None:
     try:
         result = await log_insight(content="Minimal smoke note. Safe to delete.")
         if result.get("saved"):
-            _ok("write without tags/title", result.get("message", "ok"))
+            provider = result.get("llm_provider", "none")
+            model = result.get("llm_model", "none")
+            if require_note_llm and provider == "none":
+                _fail(
+                    "write without tags/title",
+                    "LLM fallback path used (llm_provider=none) while REQUIRE_NOTE_LLM=1",
+                )
+            else:
+                _ok(
+                    "write without tags/title",
+                    f"{result.get('message', 'ok')}  llm={provider}:{model}",
+                )
         else:
             _fail("write without tags/title", str(result))
     except Exception:
@@ -258,7 +281,18 @@ async def smoke_vault_logger() -> None:
         )
         if result.get("saved"):
             fname = Path(result["filepath"]).name
-            _ok("special chars in title", f"filename={fname}")
+            provider = result.get("llm_provider", "none")
+            model = result.get("llm_model", "none")
+            if require_note_llm and provider == "none":
+                _fail(
+                    "special chars in title",
+                    "LLM fallback path used (llm_provider=none) while REQUIRE_NOTE_LLM=1",
+                )
+            else:
+                _ok(
+                    "special chars in title",
+                    f"filename={fname}  llm={provider}:{model}",
+                )
         else:
             _fail("special chars in title", str(result))
     except Exception:

@@ -9,7 +9,8 @@ import base64
 import json
 import sys
 import types
-from unittest.mock import AsyncMock, MagicMock, patch
+from pathlib import Path
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -37,6 +38,19 @@ if "config" not in sys.modules:
         aws_secret_access_key = "test-secret"
         aws_region = "us-east-1"
         nova_sonic_model_id = "amazon.nova-sonic-v1:0"
+        finnhub_api_key = ""
+        polygon_api_key = ""
+        tiingo_api_key = ""
+        bedrock_kb_id = ""
+        bedrock_kb_model_arn = ""
+        vault_path = Path("./vault")
+        log_level = "INFO"
+        app_host = "0.0.0.0"
+        app_port = 8000
+
+        @property
+        def ironclad_available(self) -> bool:
+            return False
 
     config_stub.settings = _SettingsStub()
     sys.modules["config"] = config_stub
@@ -183,7 +197,11 @@ def test_handle_tool_use_success_sends_tool_result_and_returns_to_listening(
         )
     )
 
-    tool_handler.assert_awaited_once_with("query_live_market_data", {"ticker": "NVDA"})
+    tool_handler.assert_awaited_once_with(
+        "query_live_market_data",
+        {"ticker": "NVDA"},
+        ANY,
+    )
     mock_client.build_tool_result_event.assert_called_once()
     session._send_event.assert_awaited_once()
     assert session.state == SessionState.LISTENING

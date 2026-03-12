@@ -29,6 +29,8 @@ async def test_log_insight_creates_file(tmp_path):
     text = saved_path.read_text(encoding="utf-8")
     assert "semiconductors" in text
     assert "Nvidia mentioned supply chain" in text
+    assert "## Executive Summary" in text
+    assert "## User Additions" in text
 
 
 @pytest.mark.asyncio
@@ -44,7 +46,9 @@ async def test_log_insight_front_matter(tmp_path):
     text = Path(result["filepath"]).read_text(encoding="utf-8")
     assert text.startswith("---")
     assert "source: Nova Sonic Research Terminal" in text
-    assert "tags: [test]" in text
+    assert "tags:" in text
+    assert "test" in text
+    assert "note_type: research_insight" in text
 
 
 @pytest.mark.asyncio
@@ -77,3 +81,31 @@ async def test_log_insight_filename_sanitised(tmp_path):
     assert "/" not in fname
     assert "<" not in fname
     assert fname.endswith(".md")
+
+
+@pytest.mark.asyncio
+async def test_log_insight_includes_context_metadata(tmp_path):
+    """Session context should be reflected in frontmatter and body metadata."""
+    with patch("tools.vault_logger.settings") as mock_settings:
+        mock_settings.vault_path = tmp_path
+
+        from tools.vault_logger import log_insight
+
+        result = await log_insight(
+            content="Please save the NVDA update.",
+            tags=["research"],
+            context={
+                "session_id": "session-42",
+                "tool_history": [
+                    {
+                        "tool_name": "query_live_market_data",
+                        "input": {"ticker": "NVDA"},
+                    }
+                ],
+            },
+        )
+
+    text = Path(result["filepath"]).read_text(encoding="utf-8")
+    assert 'session_id: "session-42"' in text
+    assert "tools_used:" in text
+    assert "query_live_market_data" in text

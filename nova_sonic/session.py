@@ -16,6 +16,7 @@ import logging
 import threading
 import uuid
 from enum import Enum, auto
+from datetime import datetime
 from typing import Any, Callable, Awaitable
 
 from nova_sonic.client import NovaSonicClient
@@ -23,7 +24,9 @@ from nova_sonic.client import NovaSonicClient
 logger = logging.getLogger(__name__)
 
 # Type alias for tool handler callbacks registered by the Event Router
-ToolHandler = Callable[[str, dict[str, Any]], Awaitable[dict[str, Any]]]
+ToolHandler = Callable[
+    [str, dict[str, Any], dict[str, Any] | None], Awaitable[dict[str, Any]]
+]
 
 
 class SessionState(Enum):
@@ -59,6 +62,14 @@ class NovaSonicSession:
         self.audio_output_queue: asyncio.Queue[bytes] = asyncio.Queue()
         # Background task reference (kept to prevent GC and allow cancellation)
         self._consumer_task: asyncio.Task | None = None
+        self._tool_history: list[dict[str, Any]] = []
+        self._session_context: dict[str, Any] = {
+            "session_id": str(uuid.uuid4()),
+            "prompt_id": self._prompt_id,
+            "started_at": datetime.now().isoformat(timespec="seconds"),
+            "last_user_summary": "",
+            "tool_history": self._tool_history,
+        }
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -207,11 +218,28 @@ class NovaSonicSession:
         )
         self._state = SessionState.TOOL_EXECUTING
 
+        if tool_name == "log_research_insight":
+            # The model-provided summary is useful context for final note generation.
+            self._session_context["last_user_summary"] = str(tool_input.get("content", ""))
+
+        tool_entry: dict[str, Any] = {
+            "tool_name": tool_name,
+            "tool_use_id": tool_use_id,
+            "input": tool_input,
+            "invoked_at": datetime.now().isoformat(timespec="seconds"),
+        }
+        self._tool_history.append(tool_entry)
+        context_snapshot = dict(self._session_context)
+        context_snapshot["tool_history"] = list(self._tool_history)
+        context_snapshot["latest_tool_call"] = dict(tool_entry)
+
         try:
-            result = await self._tool_handlers(tool_name, tool_input)
+            result = await self._tool_handlers(tool_name, tool_input, context_snapshot)
         except Exception as exc:
             logger.error("Tool %s raised an exception: %s", tool_name, exc)
             result = {"error": str(exc)}
+
+        tool_entry["result"] = result
 
         result_event = self._client.build_tool_result_event(
             self._prompt_id, tool_use_id, result

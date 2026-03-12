@@ -46,7 +46,11 @@ TOOL_DISPATCH: dict[str, Any] = {
 }
 
 
-async def dispatch(tool_name: str, tool_input: dict[str, Any]) -> dict[str, Any]:
+async def dispatch(
+    tool_name: str,
+    tool_input: dict[str, Any],
+    session_context: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """
     Route a Nova Sonic tool call to the correct backend function.
 
@@ -64,9 +68,16 @@ async def dispatch(tool_name: str, tool_input: dict[str, Any]) -> dict[str, Any]
         logger.warning("Unknown tool requested: %s", tool_name)
         return {"error": f"Unknown tool: {tool_name}"}
 
-    logger.info("Dispatching tool=%s input=%s", tool_name, json.dumps(tool_input))
+    logger.info(
+        "Dispatching tool=%s input=%s",
+        tool_name,
+        json.dumps(tool_input),
+    )
     try:
-        result = await handler(**tool_input)
+        if tool_name == "log_research_insight":
+            result = await handler(**tool_input, context=session_context or {})
+        else:
+            result = await handler(**tool_input)
         logger.info("Tool=%s result=%s", tool_name, json.dumps(result))
         return result
     except Exception as exc:
@@ -141,6 +152,7 @@ async def vault_log_endpoint(body: VaultLogRequest) -> VaultLogResponse:
             content=body.content,
             tags=body.tags,
             title=body.title or None,
+            context=body.context,
         )
         return VaultLogResponse(**result)
     except Exception as exc:
