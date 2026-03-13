@@ -37,7 +37,7 @@ RECORD_SECONDS = 10  # Record for 10 seconds, then wait for response
 class BidirectionalAudioTest:
     """Test bidirectional audio with Nova Sonic with detailed logging."""
     
-    def __init__(self, model_id='amazon.nova-sonic-v1:0', region='us-east-1'):
+    def __init__(self, model_id='amazon.nova-2-sonic-v1:0', region='us-east-1'):
         self.model_id = model_id
         self.region = region
         self.client = None

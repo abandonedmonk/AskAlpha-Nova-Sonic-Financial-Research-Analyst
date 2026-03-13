@@ -5,6 +5,7 @@ Each schema is passed to the Nova Sonic session at startup so the model
 knows which tools it can call and what parameters to extract from speech.
 """
 
+import json
 from typing import Any
 
 # ─── Tool 1: Live market data ─────────────────────────────────────────────────
@@ -19,7 +20,7 @@ QUERY_LIVE_MARKET_DATA: dict[str, Any] = {
             "current price, trading volume, or daily price action for a stock."
         ),
         "inputSchema": {
-            "json": {
+            "json": json.dumps({
                 "type": "object",
                 "properties": {
                     "ticker": {
@@ -31,7 +32,7 @@ QUERY_LIVE_MARKET_DATA: dict[str, Any] = {
                     }
                 },
                 "required": ["ticker"],
-            }
+            })
         },
     }
 }
@@ -47,7 +48,7 @@ ANALYZE_SEC_FILINGS_RAG: dict[str, Any] = {
             "annual or quarterly report."
         ),
         "inputSchema": {
-            "json": {
+            "json": json.dumps({
                 "type": "object",
                 "properties": {
                     "company": {
@@ -71,7 +72,7 @@ ANALYZE_SEC_FILINGS_RAG: dict[str, Any] = {
                     },
                 },
                 "required": ["company", "topic"],
-            }
+            })
         },
     }
 }
@@ -89,7 +90,7 @@ EXECUTE_QUANTITATIVE_MODEL: dict[str, Any] = {
             "'model the price of [ticker] over the next N days'."
         ),
         "inputSchema": {
-            "json": {
+            "json": json.dumps({
                 "type": "object",
                 "properties": {
                     "ticker": {
@@ -109,7 +110,7 @@ EXECUTE_QUANTITATIVE_MODEL: dict[str, Any] = {
                     },
                 },
                 "required": ["ticker", "days"],
-            }
+            })
         },
     }
 }
@@ -124,7 +125,7 @@ LOG_RESEARCH_INSIGHT: dict[str, Any] = {
             "says 'save this', 'log this', or 'add this to my vault'."
         ),
         "inputSchema": {
-            "json": {
+            "json": json.dumps({
                 "type": "object",
                 "properties": {
                     "content": {
@@ -142,7 +143,7 @@ LOG_RESEARCH_INSIGHT: dict[str, Any] = {
                     },
                 },
                 "required": ["content"],
-            }
+            })
         },
     }
 }
