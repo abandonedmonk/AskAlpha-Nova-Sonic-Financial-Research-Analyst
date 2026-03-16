@@ -1,473 +1,376 @@
-# Voice AI Agent with Nova Sonic 2
+# Ask Alpha — Nova Sonic Financial Research Terminal
 
-A voice-driven financial research assistant powered by AWS Bedrock's Nova Sonic 2 model with real-time tool calling and audio I/O streaming.
-
-**[Devpost Submission](https://amazon-nova.devpost.com/?_gl=1*11d2kzb*_gcl_au*MTgwMjE3MDQzMS4xNzcwODM1OTMw*_ga*MzUxODYxMDk1LjE3NzA4MzU5MzE.*_ga_0YHJK3Y10M*czE3NzM0Mjk5ODgkbzgkZ0kZzAkdDE3NzM0Mjk5ODgkajYwJGwwJGgw)**
-
----
-
-## 🎯 Overview
-
-This project demonstrates **AWS Bedrock's Nova Sonic 2** handling bidirectional audio streaming with sophisticated tool calling. Users speak natural language queries, and the AI:
-
-- Transcribes speech using Nova's built-in ASR
-- Understands intent and selects the right tool
-- Executes financial tools locally (Python async)
-- Returns results to Nova for response generation
-- Synthesizes audio responses in real-time
-
-The entire workflow happens **on a single bidirectional WebSocket-like stream** — no juggling multiple APIs.
+> Speak a market question. Get live prices, SEC filings, and Monte Carlo simulations — spoken back.  
+> Built on **AWS Bedrock Nova Sonic 2** for the [Amazon Nova Hackathon](https://amazon-nova.devpost.com/).
 
 ---
 
-## 🏗️ Architecture
+## Table of Contents
 
-### High-Level Flow
-
-```
-User Voice Input (16kHz PCM)
-    ↓
-[AWS Bedrock - Nova Sonic 2]
-    ├─ ASR Recognition (speech → text)
-    ├─ LLM Understanding (intent detection)
-    └─ Tool Selection (which financial tool to call?)
-    ↓
-[Local Tool Execution - Python Async]
-    ├─ Tool 1: query_live_market_data
-    ├─ Tool 2: analyze_sec_filings_rag (KB retrieval)
-    ├─ Tool 3: execute_quantitative_model (Monte Carlo)
-    └─ Tool 4: log_research_insight (vault storage)
-    ↓
-[Result Return to Nova]
-    └─ Send tool output via event stream
-    ↓
-[Nova Response Generation]
-    ├─ LLM synthesizes response text
-    └─ TTS synthesizes audio output
-    ↓
-Voice Output (24kHz PCM + Base64)
-    └─ Speaker Playback
-```
-
-### Key Innovation: Bidirectional Streaming
-
-The architecture uses **AWS Bedrock's `InvokeModelWithBidirectionalStream` API**:
-- Single persistent connection (no request/response cycles)
-- Event-driven protocol (JSON events sent/received continuously)
-- Audio, text, and tool calls on the same stream
-- Async Python event loop processes responses while capturing audio
+1. [Overview](#overview)
+2. [Architecture](#architecture)
+3. [The 4 Financial Tools](#the-4-financial-tools)
+4. [Tech Stack](#tech-stack)
+5. [Prerequisites](#prerequisites)
+6. [Setup & Running](#setup--running)
+   - [1. Clone & configure](#1-clone--configure)
+   - [2. Run the backend](#2-run-the-backend)
+   - [3. Run the frontend](#3-run-the-frontend)
+7. [Project Structure](#project-structure)
+8. [Testing](#testing)
+9. [Documentation](#documentation)
 
 ---
 
-## 🔄 Complete Workflow
+## Overview
 
-### 1. **Session Initialization**
+Ask Alpha is a **voice-native financial research assistant**. You open the Web UI, hit the mic button, and ask anything — *"What's AMD trading at right now?"*, *"What did Nvidia say about supply chains in their 10-K?"*, *"Run a Monte Carlo on NVDA for 30 days"*, *"Save this to my vault."*
+
+Nova Sonic 2 handles everything on the AI side: speech recognition, understanding your intent, picking the right tool, generating the response, and speaking it back. All of that happens over a **single bidirectional WebSocket stream** — no separate STT, LLM, or TTS APIs.
+
+The project adds four financial tool backends and an event router that connects them to Nova Sonic.
+
+**What Nova Sonic manages:**
+- Speech-to-text (ASR)
+- Language understanding + tool selection (LLM)
+- Text-to-speech (TTS)
+- Voice Activity Detection + mid-sentence interruption (VAD)
+
+**What this project adds:**
+- Four financial tool backends (market data, SEC filings, Monte Carlo, vault logger)
+- FastAPI Event Router connecting Nova Sonic to those backends
+- React + Vite Web UI with real-time audio streaming
+
+---
+
+## Architecture
+
 ```
-Client → sessionStart (inference config)
-      → promptStart (audio + tools + system prompt)
-      → contentStart (SYSTEM role)
-      → textInput (system message)
-      → contentEnd
+Browser (microphone) — React + Web Audio API
+        │  raw PCM-16 @ 16 kHz (binary WebSocket frames)
+        ▼
+┌──────────────────────────────────────┐
+│  FastAPI  /ws/voice  (WebSocket)     │  ← main.py + event_router/router.py
+│  NovaSonicSession manages the pipe  │
+└──────────────────┬───────────────────┘
+                   │ bidirectional boto3 stream
+                   ▼
+        ┌──────────────────────┐
+        │  AWS Bedrock         │
+        │  Nova Sonic 2        │  STT → LLM → TTS (all managed by AWS)
+        │  (nova-sonic-v1:0)   │  VAD + interruption (built-in)
+        └──────────┬───────────┘
+                   │ tool call JSON event
+                   ▼
+        ┌─────────────────────────────────────┐
+        │  Event Router  (event_router/)      │
+        │  dispatch(tool_name, input) → dict  │
+        └──┬──────────┬───────────┬───────────┘
+           │          │           │           │
+           ▼          ▼           ▼           ▼
+   ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
+   │ Tool 1   │ │ Tool 2   │ │ Tool 3   │ │ Tool 4   │
+   │ market   │ │ sec_rag  │ │ quant_   │ │ vault_   │
+   │ _data.py │ │ .py      │ │ model.py │ │ logger.py│
+   └──────────┘ └──────────┘ └──────────┘ └──────────┘
 ```
 
-### 2. **User Speech Input**
-```
-Client → contentStart (USER, AUDIO role)
-      → audioInput chunks (base64-encoded PCM, 16kHz)
-      → contentEnd (signals end of speech)
-```
+**WebSocket event flow (one turn):**
 
-### 3. **Nova Processing & Tool Detection**
 ```
-Nova → completionStart
-    → contentStart (TOOL role)
-    → textOutput (ASR transcript)
-    → toolUse event (tool_name, inputs)
-    → contentEnd
-```
-
-### 4. **Local Tool Execution**
-```
-Client detects toolUse event
-     → Extract tool name & inputs
-     → dispatch(tool_name, inputs) — async Python execution
-     → Get result
-     → contentStart (TOOL role)
-     → toolResult (JSON result)
-     → contentEnd
-```
-
-### 5. **Response Generation & Audio**
-```
-Nova processes tool result
-   → contentStart (ASSISTANT)
-   → textOutput (response text)
-   → contentStart (AUDIO)
-   → audioOutput chunks (24kHz PCM, base64)
-   → completionEnd
+Browser  →  startAudio (JSON control)
+Browser  →  PCM audio frames (binary)
+Browser  →  endAudio (JSON control)
+Nova     →  user_transcript (JSON)
+Nova     →  tool_result (JSON)
+Nova     →  PCM audio frames (binary, TTS output)
+Nova     →  response_complete (JSON)
 ```
 
 ---
 
-## 🛠️ The 4 Financial Tools
+## The 4 Financial Tools
 
-### **Tool 1: query_live_market_data**
-**Purpose:** Get real-time stock prices and market metrics
+| # | Tool | Trigger phrase | Data source | Fallback |
+|---|------|----------------|-------------|---------|
+| 1 | `query_live_market_data` | *"What's the price of AMD?"* | Finnhub real-time | Polygon EOD |
+| 2 | `analyze_sec_filings_rag` | *"What did Nvidia say about supply chains in their 10-K?"* | AWS Bedrock Knowledge Base | Local FAISS index |
+| 3 | `execute_quantitative_model` | *"Run a Monte Carlo on NVDA for 30 days."* | Tiingo (volatility) + Finnhub (price) | Polygon |
+| 4 | `log_research_insight` | *"Save this to my vault, tag it semiconductors."* | Local `vault/` directory + Groq LLM | Structural template |
 
-```python
-Input:  {"ticker": "AMD"}
-Output: {
-  "ticker": "AMD",
-  "price": 194.13,
-  "change": "-0.45%",
-  "volume": 45230000
-}
-```
+**Example Tool 3 output (spoken back by Nova):**
 
-**Data Sources:** Finnhub API (primary) + Polygon fallback
-
----
-
-### **Tool 2: analyze_sec_filings_rag**
-**Purpose:** Search SEC 10-K/10-Q filings using Retrieval-Augmented Generation
-
-```python
-Input:  {
-  "company": "AMD",
-  "topic": "revenue growth",
-  "filing_type": "10-Q"
-}
-Output: {
-  "passages": [
-    "Data Center net revenue reached $16.6 billion..."
-  ],
-  "sources": ["AMD Form 10-Q 2025"]
-}
-```
-
-**Data Source:** AWS Bedrock Knowledge Base with SEC documents
-
-**Smart ASR Normalization:** Automatically corrects speech-to-text errors:
-- "tenk" → "10-K" | "tenq" → "10-Q"
-- Matches company names from transcript context
-
----
-
-### **Tool 3: execute_quantitative_model**
-**Purpose:** Run Monte Carlo simulations for price forecasting
-
-```python
-Input:  {
-  "ticker": "AMD",
+```json
+{
+  "ticker": "NVDA",
   "days": 30,
-  "simulations": 10000
-}
-Output: {
-  "current_price": 194.13,
-  "p10": 146.33,    # 10th percentile
-  "p50": 190.48,    # median
-  "p90": 248.86,    # 90th percentile
-  "mean": 195.00
+  "current_price": 875.5,
+  "p10": 820.12,
+  "p50": 878.44,
+  "p90": 941.33,
+  "mean": 879.11,
+  "simulation_time_seconds": 0.03
 }
 ```
 
-**Engine:** NumPy-based geometric Brownian motion simulation
-**Performance:** Sub-millisecond computation for 10K simulations
+Tool 4 writes **Obsidian-compatible Markdown notes** with full YAML front matter, structured sections (Executive Summary, Evidence, Key Takeaways, Risks, Next Steps), and session context embedded — composed by a Groq LLM call.
 
 ---
 
-### **Tool 4: log_research_insight**
-**Purpose:** Save analysis notes to personal vault with tags
+## Tech Stack
 
-```python
-Input:  {
-  "content": "AMD is volatile despite strong data center growth",
-  "tags": ["semiconductors", "amd", "analysis"],
-  "title": "AMD Market Analysis"
-}
-Output: {
-  "saved": true,
-  "filepath": "vault/Research_Insight_-_2026-03-14.md"
-}
-```
-
-**Storage:** Local markdown files in `vault/` directory
-**Format:** Timestamped, searchable research notes
+| Layer | Technology |
+|-------|-----------|
+| Voice AI | AWS Bedrock Nova Sonic 2 (`amazon.nova-sonic-v1:0`) |
+| Backend | Python 3.11+, FastAPI, uvicorn, asyncio |
+| AWS SDK | boto3 (`InvokeModelWithBidirectionalStream`) |
+| Market data | Finnhub (primary), Polygon.io (fallback) |
+| SEC filings | AWS Bedrock Knowledge Base + FAISS (local fallback) |
+| Quant | NumPy — 10k GBM paths in ~30ms |
+| Note LLM | Groq (`llama-3.3-70b-versatile`) |
+| Frontend | React 19, Vite 8, TypeScript 5.9, Tailwind CSS 4, Framer Motion |
+| Audio (browser) | Web Audio API + AudioWorklet (no native deps) |
 
 ---
 
-## How Nova Sonic 2 Powers Everything
+## Prerequisites
 
-### **Why Nova Sonic 2?**
-
-1. **Native Audio I/O** - Built-in speech recognition + synthesis, no external APIs
-2. **Streaming Foundation** - Handles bidirectional audio natively
-3. **Tool Calling** - Understands custom tool schemas and selects appropriate tools
-4. **Low Latency** - Sonic model optimized for voice conversations
-5. **Cost-Effective** - Cheaper than multi-model pipelines
-
-### **Nova Sonic's Role in This Project**
-
-| Stage | Nova's Function |
-|-------|-----------------|
-| **ASR** | Converts user speech → text (on device, real-time) |
-| **NLU** | Understands intent, extracts parameters |
-| **Tool Selection** | Decides which of the 4 tools to call |
-| **Response Gen** | Synthesizes response text from tool results |
-| **TTS** | Converts response → 24kHz audio stream |
-
-### **Tool Schema Configuration**
-
-Nova discovers tools via `toolConfiguration` in API:
-
-```python
-"toolConfiguration": {
-  "tools": [
-    {
-      "toolSpec": {
-        "name": "execute_quantitative_model",
-        "description": "Run Monte Carlo simulations",
-        "inputSchema": {
-          "json": json.dumps({
-            "type": "object",
-            "properties": {
-              "ticker": {"type": "string"},
-              "days": {"type": "integer"}
-            }
-          })
-        }
-      }
-    }
-    # ... 3 more tools
-  ],
-  "toolChoice": {"auto": {}}  # Nova auto-selects when needed
-}
-```
+- **Python 3.11+**
+- **Node.js 18+** (for the frontend)
+- **AWS account** with Bedrock access enabled in `us-east-1`
+  - Nova Sonic 2 model access approved in the Bedrock console
+- **Polygon.io API key** (required — fallback market data)
+- **Finnhub API key** (recommended — primary real-time quotes)
+- **Groq API key** (recommended — vault note composition)
+- A browser with microphone access (Chrome / Edge recommended)
 
 ---
 
-## 📊 Tech Stack
+## Setup & Running
 
-### **Core Technologies**
-
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| **LLM/ASR/TTS** | AWS Bedrock - Nova Sonic 2 | Speech recognition, understanding, synthesis |
-| **Streaming** | Python `asyncio` | Concurrent audio capture/playback + event processing |
-| **Tool Dispatch** | Custom router (event_router/) | Maps tool calls to Python implementations |
-| **Market Data** | Finnhub API | Real-time stock prices |
-| **SEC Filings** | AWS Bedrock Knowledge Base | RAG-based document retrieval |
-| **Quantitative** | NumPy | Monte Carlo simulations |
-| **Audio I/O** | PyAudio | Microphone capture, speaker playback |
-| **API Client** | AWS SDK (Bedrock Runtime) | Bidirectional streaming API |
-
-### **Languages & Frameworks**
-
-- **Python 3.10+** - Entire backend
-- **FastAPI** (optional) - REST API wrapper
-- **pytest** - Unit testing
-- **asyncio** - Async I/O throughout
-
-### **Audio Specifications**
-
-- **Input:** 16 kHz, 16-bit PCM, mono (speech quality)
-- **Output:** 24 kHz, 16-bit PCM, mono (natural synthesis)
-- **Transport:** Base64-encoded over JSON events
-
----
-
-## 🎯 Features
-
-✅ **Real-time Voice Commands**  
-✅ **Multi-Tool Intelligence** - Tool selection + execution  
-✅ **SEC Filing Search** - RAG with AWS Knowledge Base  
-✅ **Monte Carlo Simulations** - Fast quantitative analysis  
-✅ **Research Vault** - Tag-based note storage  
-✅ **Smart ASR Correction** - Context-aware input normalization  
-✅ **Async Architecture** - Non-blocking event processing  
-✅ **Streaming Audio** - Continuous I/O without buffering  
-
----
-
-## Quick Start
-
-### **Prerequisites**
-- Python 3.10+
-- AWS Account with Bedrock access (Nova Sonic 2)
-- Microphone & speakers
-
-### **Setup**
+### 1. Clone & Configure
 
 ```bash
-# Clone repo
 git clone https://github.com/abandonedmonk/Voice_AI_Agent_Nova.git
 cd Voice_AI_Agent_Nova
+```
 
-# Create virtual environment
-python -m venv nova-env
-source nova-env/bin/activate  
+Copy the environment template and fill in your credentials:
+
+```bash
+# Windows
+copy .env.example .env
+
+# macOS / Linux
+cp .env.example .env
+```
+
+Open `.env` and set at minimum:
+
+```env
+AWS_ACCESS_KEY_ID=your_key
+AWS_SECRET_ACCESS_KEY=your_secret
+AWS_REGION=us-east-1
+
+POLYGON_API_KEY=your_polygon_key
+
+# Recommended
+FINNHUB_API_KEY=your_finnhub_key
+GROQ_API_KEY=your_groq_key
+
+# Optional — for SEC filing search
+BEDROCK_KB_ID=your_kb_id
+
+# Optional — for historical volatility in Tool 3
+TIINGO_API_KEY=your_tiingo_key
+```
+
+> All other settings (`NOVA_SONIC_MODEL_ID`, `VAULT_PATH`, etc.) have sensible defaults — see `.env.example` for the full annotated list.
+
+---
+
+### 2. Run the Backend
+
+```bash
+# Create and activate virtual environment
+python -m venv .venv
+
+# Windows
+.venv\Scripts\activate
+
+# macOS / Linux
+source .venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Configure credentials
-cp .env.example .env
-# Fill in:
-#   AWS_ACCESS_KEY_ID
-#   AWS_SECRET_ACCESS_KEY
-#   BEDROCK_KB_ID (for SEC filings)
-#   POLYGON_API_KEY (backup market data)
-#   FINNHUB_API_KEY (primary market data)
+# Start the server
+python main.py
 ```
 
-### **Run Integration Test**
+The server starts at **`http://localhost:8000`**.
+
+Verify it's healthy:
 
 ```bash
-python tests/test_audio_with_tools.py
+curl http://localhost:8000/health
+# → {"status":"ok","tools":["query_live_market_data","analyze_sec_filings_rag","execute_quantitative_model","log_research_insight"]}
 ```
 
-**Expected Output:**
-```
-================================================================================
-SESSION READY - AWAITING USER INPUT
-================================================================================
+**Alternative (with auto-reload for development):**
 
-🎤 Speak now...
-
-[TOOL] query_live_market_data
-  Input: {"ticker": "AMD"}
-  Retrieved: {"price": 194.13, "change": "-0.45%", ...}
-
-[RESPONSE] The current price of AMD is $194.13, down 0.45%.
-[AUDIO] Generating synthesized speech...
-
-================================================================================
-TEST SUMMARY
-================================================================================
-Tools called: 1
-Audio chunks received: 305
-  ✓ query_live_market_data
+```bash
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ---
 
-## 📂 Project Structure
+### 3. Run the Frontend
+
+In a **second terminal** (keep the backend running):
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The UI is available at **`http://localhost:5173`**.
+
+**Using the UI:**
+
+1. Open `http://localhost:5173` in Chrome or Edge
+2. Allow microphone access when prompted
+3. Click the **mic button** and speak your question
+4. Click mic again (or just stop speaking) to send
+5. Nova Sonic will respond — spoken aloud and shown as text
+6. The right panel shows the raw tool output
+7. The vault panel lists saved research notes; click any to read it
+
+> **Note:** The backend must be running before you open the UI. The frontend connects to `ws://localhost:8000/ws/voice` automatically on page load.
+
+---
+
+### Optional: Build SEC Filing Index Locally
+
+If you don't have a Bedrock Knowledge Base, you can build a local FAISS index from PDFs:
+
+```bash
+pip install llama-index faiss-cpu pypdf
+
+# Drop 10-K PDFs into data/sec_filings/
+# e.g. nvidia-2024-10k.pdf, amd-2024-10k.pdf (from SEC EDGAR)
+
+python data/build_local_index.py
+```
+
+Leave `BEDROCK_KB_ID` empty in `.env` and the SEC tool will use this index automatically.
+
+---
+
+## Project Structure
 
 ```
-Voice_AI_Agent_Nova/
-├── nova_sonic/
-│   ├── client.py          # Bedrock API wrapper
-│   ├── session.py         # Session lifecycle
-│   ├── tool_schemas.py    # Tool definitions for Nova
-│   └── __init__.py
-├── tools/                 # Tool implementations
-│   ├── market_data.py     # Tool 1: Stock prices
-│   ├── sec_rag.py         # Tool 2: SEC filings
-│   ├── quant_model.py     # Tool 3: Monte Carlo
-│   └── vault_logger.py    # Tool 4: Note saving
-├── event_router/
-│   ├── router.py          # Tool discovery & dispatch
-│   ├── schemas.py         # Event type definitions
-│   └── __init__.py
-├── tests/
-│   ├── test_audio_with_tools.py  # Main integration test
-│   ├── test_quant_model.py
-│   └── ...
-├── docs/
-│   ├── HOW_NOVA_SONIC_TOOLS_WORK.md  # Deep dive
-│   ├── BIDIRECTIONAL_AUDIO_TEST.md
-│   └── ...
-├── vault/                 # User research notes
-├── .env.example
+Voice_AI_Agent/
+│
+├── main.py                      # FastAPI app entry point
+├── config.py                    # Pydantic settings (reads .env)
 ├── requirements.txt
-└── README.md
+├── pytest.ini                   # asyncio_mode = auto
+├── .env.example
+│
+├── frontend/                    # React + Vite + TypeScript Web UI
+│   ├── src/
+│   │   ├── App.tsx              # Root: routes / and /vault/:filename
+│   │   └── components/          # Panel, VoiceVisualizer, VaultViewer, etc.
+│   ├── package.json
+│   └── vite.config.ts
+│
+├── nova_sonic/                  # AWS Bedrock / Nova Sonic layer
+│   ├── client.py                # boto3 stream wrapper + event builders
+│   ├── session.py               # Per-connection state machine
+│   └── tool_schemas.py          # JSON tool schemas injected at session start
+│
+├── event_router/                # Dispatch layer
+│   ├── router.py                # WebSocket + REST endpoints + dispatch()
+│   └── schemas.py               # Pydantic I/O models
+│
+├── tools/                       # Financial tool backends
+│   ├── market_data.py           # Tool 1 — Finnhub + Polygon
+│   ├── sec_rag.py               # Tool 2 — Bedrock KB or FAISS
+│   ├── quant_model.py           # Tool 3 — Monte Carlo
+│   └── vault_logger.py          # Tool 4 — Markdown notes
+│
+├── compute/
+│   └── monte_carlo.py           # GBM simulator (NumPy + pure-Python fallback)
+│
+├── data/
+│   ├── build_local_index.py     # One-shot FAISS builder
+│   └── sec_filings/             # Drop PDFs here
+│
+├── tests/                       # Unit + integration tests
+├── vault/                       # Runtime: saved research notes
+└── docs/                        # PROJECT_OVERVIEW.md and technical deep dives
 ```
 
 ---
 
-## 🧪 Testing
+## Testing
 
-### **Unit Tests**
+### Unit tests (no AWS credentials needed)
+
 ```bash
 pytest tests/ -v
 ```
 
-### **Integration Test (Audio + Tools)**
+Covers: `NovaSonicClient` event builders, `NovaSonicSession` state machine, all four tool backends, and the event router's dispatch logic. All AWS and external API calls are mocked.
+
+### Live integration tests (requires real credentials)
+
+```bash
+python tests/smoke_test_tools.py
+```
+
+Makes real network calls to Finnhub, Polygon, Bedrock KB, and Groq. Tests all four tools end-to-end including cache hits and fallback paths.
+
+### Full audio + tool test (requires running server + microphone)
+
 ```bash
 python tests/test_audio_with_tools.py
 ```
 
-### **Manual Testing**
+### WebSocket debug (requires running server)
 
-To test specific tools, see test files in `tests/`:
-- `test_nova_sonic_client.py` - Bedrock connection
-- `test_quant_model.py` - Monte Carlo accuracy
-- `test_market_data.py` - API integration
-- `test_vault_logger.py` - File I/O
+```bash
+python tests/test_web_ui_debug.py
+```
 
 ---
 
-## 📚 Documentation
+## API Endpoints
 
-Comprehensive guides in `docs/`:
-
-- **[Nova_Sonic_implementation_with_tools.md](docs/Nova_Sonic_implementation_with_tools.md)** - Full technical deep dive  
-- **[BIDIRECTIONAL_AUDIO_TEST.md](docs/BIDIRECTIONAL_AUDIO_TEST.md)** - Event protocol details  
-- **[PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md)** - Architecture & design decisions
-
----
-
-## 🎨 User Interface
-
-The application provides a voice-first interface with real-time feedback:
-
-- **Chat Session Panel** - Conversation history
-- **Query Display** - Real-time tool results shown
-- **Voice Waveform** - Visual feedback during speech
-- **Vault Logger** - Quick-access research notes
+| Method | Path | Description |
+|--------|------|-------------|
+| `WS` | `/ws/voice` | Bidirectional audio stream (PCM in, PCM out + JSON events) |
+| `GET` | `/health` | Liveness check — lists all four tool names |
+| `POST` | `/vault/log` | Direct vault write (bypasses voice pipeline) |
+| `GET` | `/vault/files` | List all saved vault notes |
+| `GET` | `/vault/files/{filename}` | Read a specific vault note |
 
 ---
 
-## 🔐 Security & Best Practices
+## Documentation
 
-- ✅ Environment variables for all credentials (`.env`)
-- ✅ Async/await for non-blocking operations
-- ✅ Error handling for API failures (fallbacks)
-- ✅ Input validation for tool parameters
-- ✅ Structured logging for debugging
-
----
-
-## 🚀 Future Enhancements
-
-- [ ] Multi-turn conversations (context memory)
-- [ ] Custom voice profiles (more voice options)
-- [ ] Extended tool ecosystem (earnings calendar, options chains)
-- [ ] Persistent chat history with SQLite
-- [ ] Web UI dashboard
-- [ ] Deployment to AWS Lambda/Container Apps
+| File | Contents |
+|------|----------|
+| [docs/PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md) | Full file-by-file reference, all APIs, state machine, session flow |
+| [docs/Nova_Sonic_implementation_with_tools.md](docs/Nova_Sonic_implementation_with_tools.md) | Deep dive on the Nova Sonic bidirectional stream protocol |
+| [docs/BIDIRECTIONAL_AUDIO_TEST.md](docs/BIDIRECTIONAL_AUDIO_TEST.md) | Event protocol details and timing |
+| [docs/VAULT_LOGGER_DEEP_DIVE.md](docs/VAULT_LOGGER_DEEP_DIVE.md) | Vault logger LLM + note structure details |
+| [docs/HACKATHON_SCRIPT.md](docs/HACKATHON_SCRIPT.md) | 3-minute demo script for the hackathon presentation |
 
 ---
 
-## 📄 License
+## License
 
-This project is submitted to the **Amazon Nova Hackathon** on Devpost.
-
----
-
-## 🤝 Team & Credits
-
-Built with AWS Bedrock Nova Sonic 2 for the Amazon Nova Hackathon.
-
-**Key Technologies:**
-- [AWS Bedrock](https://aws.amazon.com/bedrock/)
-- [Nova Sonic 2](https://www.anthropic.com/)
-- [Python AsyncIO](https://docs.python.org/3/library/asyncio.html)
-
----
-
-## 📞 Contact & Support
-
-For questions about this project, see the documentation or visit the [Devpost page](https://amazon-nova.devpost.com/).
-
-**Questions about Nova Sonic 2 integration?** Check [HOW_NOVA_SONIC_TOOLS_WORK.md](docs/HOW_NOVA_SONIC_TOOLS_WORK.md) for a complete technical walkthrough.
+Submitted to the **Amazon Nova Hackathon** on Devpost.
