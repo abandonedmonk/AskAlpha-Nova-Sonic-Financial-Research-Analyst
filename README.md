@@ -151,8 +151,8 @@ Tool 4 writes **Obsidian-compatible Markdown notes** with full YAML front matter
 ### 1. Clone & Configure
 
 ```bash
-git clone https://github.com/abandonedmonk/Voice_AI_Agent_Nova.git
-cd Voice_AI_Agent_Nova
+git clone https://github.com/abandonedmonk/AskAlpha-Nova-Sonic-Financial-Research-Analyst.git
+cd AskAlpha-Nova-Sonic-Financial-Research-Analyst
 ```
 
 Copy the environment template and fill in your credentials:
@@ -356,18 +356,6 @@ python tests/test_web_ui_debug.py
 | `POST` | `/vault/log` | Direct vault write (bypasses voice pipeline) |
 | `GET` | `/vault/files` | List all saved vault notes |
 | `GET` | `/vault/files/{filename}` | Read a specific vault note |
-
----
-
-## Documentation
-
-| File | Contents |
-|------|----------|
-| [docs/PROJECT_OVERVIEW.md](docs/PROJECT_OVERVIEW.md) | Full file-by-file reference, all APIs, state machine, session flow |
-| [docs/Nova_Sonic_implementation_with_tools.md](docs/Nova_Sonic_implementation_with_tools.md) | Deep dive on the Nova Sonic bidirectional stream protocol |
-| [docs/BIDIRECTIONAL_AUDIO_TEST.md](docs/BIDIRECTIONAL_AUDIO_TEST.md) | Event protocol details and timing |
-| [docs/VAULT_LOGGER_DEEP_DIVE.md](docs/VAULT_LOGGER_DEEP_DIVE.md) | Vault logger LLM + note structure details |
-| [docs/HACKATHON_SCRIPT.md](docs/HACKATHON_SCRIPT.md) | 3-minute demo script for the hackathon presentation |
 
 ---
 
