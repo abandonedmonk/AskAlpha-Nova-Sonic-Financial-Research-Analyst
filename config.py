@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     aws_region: str = "us-east-1"
 
     # ── Nova Sonic ────────────────────────────────────────────────────────────
-    nova_sonic_model_id: str = "amazon.nova-sonic-v1:0"
+    nova_sonic_model_id: str = "amazon.nova-2-sonic-v1:0"
 
     # ── Note generation (Vault Logger) ───────────────────────────────────────
     note_llm_provider: str = "groq"  # groq | nova_lite | none

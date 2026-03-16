@@ -46,3 +46,6 @@ nova-env
 
 # logs
 test.txt
+frontend_ui.txt
+logs_browser.txt
+script.txt

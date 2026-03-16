@@ -144,10 +144,11 @@ def _build_front_matter(
     llm_model: str,
 ) -> str:
     session_id = str(context.get("session_id", ""))
+    safe_title = title.replace('"', "'")
 
     return (
         "---\n"
-        f"title: \"{title.replace('"', "'")}\"\n"
+        f"title: \"{safe_title}\"\n"
         f"date: {ts}\n"
         f"updated: {ts}\n"
         "source: Nova Sonic Research Terminal\n"

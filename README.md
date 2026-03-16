@@ -300,12 +300,12 @@ Nova discovers tools via `toolConfiguration` in API:
 
 ```bash
 # Clone repo
-git clone <repo-url>
+git clone https://github.com/abandonedmonk/Voice_AI_Agent_Nova.git
 cd Voice_AI_Agent_Nova
 
 # Create virtual environment
 python -m venv nova-env
-source nova-env/bin/activate  # Windows: nova-env\Scripts\activate
+source nova-env/bin/activate  
 
 # Install dependencies
 pip install -r requirements.txt

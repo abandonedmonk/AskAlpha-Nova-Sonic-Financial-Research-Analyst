@@ -54,7 +54,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 # ── App factory ───────────────────────────────────────────────────────────────
 
 app = FastAPI(
-    title="Voice AI Agent — Nova Sonic Financial Research Terminal",
+    title="Voice AI Agent — Nova Sonic Financial Research Tool",
     description=(
         "AWS Bedrock Nova Sonic + Polygon.io + SEC RAG + Monte Carlo compute. "
         "Speak a market question, get a spoken answer."
