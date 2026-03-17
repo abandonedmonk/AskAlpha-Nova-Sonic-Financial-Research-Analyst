@@ -1,4 +1,4 @@
-# Ask Alpha — Nova Sonic Financial Research Terminal
+# Ask Alpha — Nova Sonic Financial Research Assistant 
 
 > Speak a market question. Get live prices, SEC filings, and Monte Carlo simulations — spoken back.  
 > Built on **AWS Bedrock Nova Sonic 2** for the [Amazon Nova Hackathon](https://amazon-nova.devpost.com/).
