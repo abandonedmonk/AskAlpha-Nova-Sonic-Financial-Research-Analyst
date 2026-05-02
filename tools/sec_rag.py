@@ -101,6 +101,8 @@ async def _query_bedrock_kb(company: str, topic: str, filing_type: str) -> list[
 # ── Local FAISS fallback path ─────────────────────────────────────────────────
 
 
+_LOCAL_QUERY_ENGINE = None
+
 async def _query_local_faiss(company: str, topic: str, filing_type: str) -> list[str]:
     """
     Fallback: query a local FAISS index built from SEC PDFs in data/sec_filings/.
@@ -108,27 +110,31 @@ async def _query_local_faiss(company: str, topic: str, filing_type: str) -> list
     Requires:  pip install llama-index faiss-cpu pypdf
     Build the index by running:  python tools/build_local_index.py
     """
+    global _LOCAL_QUERY_ENGINE
+    import asyncio
+
     try:
-        from llama_index.core import StorageContext, load_index_from_storage  # type: ignore
+        if _LOCAL_QUERY_ENGINE is None:
+            from llama_index.core import StorageContext, load_index_from_storage  # type: ignore
+            storage_path = str(settings.vault_path.parent / "faiss_index") if settings.vault_path else "./data/faiss_index"
+            storage_context = StorageContext.from_defaults(persist_dir=storage_path)
+            index = load_index_from_storage(storage_context)
+            _LOCAL_QUERY_ENGINE = index.as_query_engine(similarity_top_k=3)
     except ImportError as exc:
         raise RuntimeError(
             "Local FAISS fallback requires llama-index: pip install llama-index faiss-cpu pypdf"
         ) from exc
-
-    import asyncio
+    except Exception as exc:
+        logger.error("Failed to load local FAISS index: %s", exc)
+        return []
 
     query_text = f"{company} {topic}" + (
         f" {filing_type}" if filing_type and filing_type != "any" else ""
     )
 
-    storage_path = "./data/faiss_index"
-    storage_context = StorageContext.from_defaults(persist_dir=storage_path)
-    index = load_index_from_storage(storage_context)
-    query_engine = index.as_query_engine(similarity_top_k=3)
-
     # llama-index query is sync; run in executor to avoid blocking the event loop
     loop = asyncio.get_event_loop()
-    response = await loop.run_in_executor(None, query_engine.query, query_text)
+    response = await loop.run_in_executor(None, _LOCAL_QUERY_ENGINE.query, query_text)
 
     passages = []
     if hasattr(response, "source_nodes"):

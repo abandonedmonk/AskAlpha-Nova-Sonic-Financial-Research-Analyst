@@ -1,0 +1,743 @@
+{
+  "meta": {
+    "timestamp_utc": "2026-03-21T09:39:27.265481Z",
+    "dataset": "evals\\eval_dataset.json",
+    "company": "INTC",
+    "filing_type": "any",
+    "total": 37,
+    "groq_model": "llama-3.3-70b-versatile"
+  },
+  "summary": {
+    "answer_relevance": 0.772972972972973,
+    "faithfulness": 0.8540540540540541,
+    "context_relevance": 0.4891891891891892,
+    "correctness": 0.4675135135135135,
+    "overall": 0.6459324324324325
+  },
+  "results": [
+    {
+      "id": "FIN-01",
+      "category": "Financial Performance",
+      "question": "What was Intel's total revenue in FY 2024?",
+      "ground_truth": "$53.1 billion",
+      "answer": "Intel's total revenue in FY 2024 was $49.5 billion.",
+      "retrieved_passages": 3,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 1.0,
+        "faithfulness": 1.0,
+        "context_relevance": 1.0,
+        "correctness": 0.0
+      },
+      "judge_reason": "The answer is incorrect because the ground truth states that Intel's total revenue in FY 2024 was $53.1 billion, but the model answer states it was $49.5 billion.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 1,\n  \"faithfulness\": 1,\n  \"context_relevance\": 1,\n  \"correctness\": 0,\n  \"reason\": \"The answer is incorrect because the ground truth states that Intel's total revenue in FY 2024 was $53.1 billion, but the model answer states it was $49.5 billion.\"\n}\n```"
+    },
+    {
+      "id": "FIN-02",
+      "category": "Financial Performance",
+      "question": "How much did Intel's revenue decline compared to FY 2023?",
+      "ground_truth": "Revenue declined approximately 2% year-over-year.",
+      "answer": "Intel's revenue declined by $1.2 billion in 2024 compared to 2023.",
+      "retrieved_passages": 3,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 0.8,
+        "faithfulness": 0.9,
+        "context_relevance": 0.9,
+        "correctness": 0.6
+      },
+      "judge_reason": "The answer is relevant to the question and is based on the provided context. However, it does not provide the year-over-year percentage decline as requested in the question, instead providing the absolute decline in revenue.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 0.8,\n  \"faithfulness\": 0.9,\n  \"context_relevance\": 0.9,\n  \"correctness\": 0.6,\n  \"reason\": \"The answer is relevant to the question and is based on the provided context. However, it does not provide the year-over-year percentage decline as requested in the question, instead providing the absolute decline in revenue.\"\n}\n```"
+    },
+    {
+      "id": "FIN-03",
+      "category": "Financial Performance",
+      "question": "What was Intel's net income in FY 2024?",
+      "ground_truth": "$18.8 billion loss",
+      "answer": "Intel's net income in FY 2024 was a loss of $19,233 million.",
+      "retrieved_passages": 3,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 1.0,
+        "faithfulness": 1.0,
+        "context_relevance": 1.0,
+        "correctness": 1.0
+      },
+      "judge_reason": "The model answer accurately reflects the information provided in the retrieved context, which states that Intel's net income in FY 2024 was a loss of $19,233 million.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 1,\n  \"faithfulness\": 1,\n  \"context_relevance\": 1,\n  \"correctness\": 1,\n  \"reason\": \"The model answer accurately reflects the information provided in the retrieved context, which states that Intel's net income in FY 2024 was a loss of $19,233 million.\"\n}\n```"
+    },
+    {
+      "id": "FIN-04",
+      "category": "Financial Performance",
+      "question": "What was Intel's diluted EPS in FY 2024?",
+      "ground_truth": "Negative $4.38 per share",
+      "answer": "Intel's diluted EPS in FY 2024 was $-4.38.",
+      "retrieved_passages": 3,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 1.0,
+        "faithfulness": 1.0,
+        "context_relevance": 1.0,
+        "correctness": 1.0
+      },
+      "judge_reason": "The model answer accurately extracts the diluted EPS for Intel in FY 2024 from the provided context, which matches the ground truth.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 1,\n  \"faithfulness\": 1,\n  \"context_relevance\": 1,\n  \"correctness\": 1,\n  \"reason\": \"The model answer accurately extracts the diluted EPS for Intel in FY 2024 from the provided context, which matches the ground truth.\"\n}\n```"
+    },
+    {
+      "id": "FIN-05",
+      "category": "Financial Performance",
+      "question": "How much did Intel spend on R&D in FY 2024?",
+      "ground_truth": "$16.5 billion",
+      "answer": "Intel spent $16.5 billion on R&D in FY 2024.",
+      "retrieved_passages": 1,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 1.0,
+        "faithfulness": 1.0,
+        "context_relevance": 1.0,
+        "correctness": 1.0
+      },
+      "judge_reason": "The model answer matches the ground truth and is directly supported by the retrieved context.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 1,\n  \"faithfulness\": 1,\n  \"context_relevance\": 1,\n  \"correctness\": 1,\n  \"reason\": \"The model answer matches the ground truth and is directly supported by the retrieved context.\"\n}\n```"
+    },
+    {
+      "id": "FIN-06",
+      "category": "Financial Performance",
+      "question": "What was Intel's gross margin percentage in FY 2024?",
+      "ground_truth": "32.70%",
+      "answer": "To calculate Intel's gross margin percentage in FY 2024, we need to use the provided context. \n\nGross profit in FY 2024 = $17,345 million\nNet revenue in FY 2024 = $53,101 million\n\nGross margin percentage = (Gross profit / Net revenue) * 100\n= ($17,345 / $53,101) * 100\n= 32.6%\n\nSo, Intel's gross margin percentage in FY 2024 was 32.6%.",
+      "retrieved_passages": 3,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 1.0,
+        "faithfulness": 1.0,
+        "context_relevance": 1.0,
+        "correctness": 0.998
+      },
+      "judge_reason": "The model answer accurately calculates the gross margin percentage using the provided context, but the calculated value (32.6%) is slightly different from the ground truth (32.70%).",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 1,\n  \"faithfulness\": 1,\n  \"context_relevance\": 1,\n  \"correctness\": 0.998,\n  \"reason\": \"The model answer accurately calculates the gross margin percentage using the provided context, but the calculated value (32.6%) is slightly different from the ground truth (32.70%).\"\n}\n```"
+    },
+    {
+      "id": "FIN-07",
+      "category": "Financial Performance",
+      "question": "What was Intel's total debt at year-end 2024?",
+      "ground_truth": "$50.01 billion",
+      "answer": "Context is insufficient to determine Intel's total debt at year-end 2024.",
+      "retrieved_passages": 2,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 1.0,
+        "faithfulness": 1.0,
+        "context_relevance": 0.0,
+        "correctness": 0.0
+      },
+      "judge_reason": "The model answer correctly states that the context is insufficient to determine Intel's total debt at year-end 2024, which aligns with the provided context not containing the required information.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 1.0,\n  \"faithfulness\": 1.0,\n  \"context_relevance\": 0.0,\n  \"correctness\": 0.0,\n  \"reason\": \"The model answer correctly states that the context is insufficient to determine Intel's total debt at year-end 2024, which aligns with the provided context not containing the required information.\"\n}\n```"
+    },
+    {
+      "id": "FIN-08",
+      "category": "Financial Performance",
+      "question": "How much did Intel invest in capital expenditures in FY 2024?",
+      "ground_truth": "$23.9 billion",
+      "answer": "No context provided.",
+      "retrieved_passages": 0,
+      "sources": [],
+      "scores": {
+        "answer_relevance": 0.0,
+        "faithfulness": 0.0,
+        "context_relevance": 0.0,
+        "correctness": 0.0
+      },
+      "judge_reason": "The model did not provide an answer and no context was retrieved to support any potential answer.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 0.0,\n  \"faithfulness\": 0.0,\n  \"context_relevance\": 0.0,\n  \"correctness\": 0.0,\n  \"reason\": \"The model did not provide an answer and no context was retrieved to support any potential answer.\"\n}\n```"
+    },
+    {
+      "id": "FIN-09",
+      "category": "Financial Performance",
+      "question": "What was Intel's effective tax rate in FY 2024?",
+      "ground_truth": "71.60%",
+      "answer": "Intel's effective tax rate in FY 2024 was 71.6%.",
+      "retrieved_passages": 3,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/AMD_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/AMD_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 1.0,
+        "faithfulness": 1.0,
+        "context_relevance": 1.0,
+        "correctness": 1.0
+      },
+      "judge_reason": "The model answer directly matches the ground truth and is supported by the retrieved context.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 1,\n  \"faithfulness\": 1,\n  \"context_relevance\": 1,\n  \"correctness\": 1,\n  \"reason\": \"The model answer directly matches the ground truth and is supported by the retrieved context.\"\n}\n```"
+    },
+    {
+      "id": "FIN-10",
+      "category": "Financial Performance",
+      "question": "How much revenue did the Client Computing Group (CCG) generate in FY 2024?",
+      "ground_truth": "$30.29 billion",
+      "answer": "The context does not provide the total CCG revenue for FY 2024, but it does provide the client revenue and other CCG revenue. \nClient revenue was $28.7 billion in 2024 and other CCG revenue was $4.6 billion. \nSo, the total CCG revenue in 2024 was $28.7 billion + $4.6 billion = $33.3 billion.",
+      "retrieved_passages": 3,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 0.9,
+        "faithfulness": 0.8,
+        "context_relevance": 0.9,
+        "correctness": 0.0
+      },
+      "judge_reason": "The model answer is incorrect because it calculates the total CCG revenue for FY 2024 as $33.3 billion, whereas the ground truth is $30.29 billion.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 0.9,\n  \"faithfulness\": 0.8,\n  \"context_relevance\": 0.9,\n  \"correctness\": 0.0,\n  \"reason\": \"The model answer is incorrect because it calculates the total CCG revenue for FY 2024 as $33.3 billion, whereas the ground truth is $30.29 billion.\"\n}\n```"
+    },
+    {
+      "id": "FIN-11",
+      "category": "Financial Performance",
+      "question": "How much revenue did the Data Center and AI Group (DCAI) generate in FY 2024?",
+      "ground_truth": "$12.81 billion",
+      "answer": "The context does not provide the exact revenue generated by the Data Center and AI Group (DCAI) in FY 2024. It only mentions that DCAI revenue increased by $794 million from 2024, but does not provide the base revenue for 2024.",
+      "retrieved_passages": 3,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 0.8,
+        "faithfulness": 1.0,
+        "context_relevance": 0.9,
+        "correctness": 0.0
+      },
+      "judge_reason": "The model answer is relevant to the question and faithful to the context, but it does not provide the correct answer because the context does not contain the required information.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 0.8,\n  \"faithfulness\": 1.0,\n  \"context_relevance\": 0.9,\n  \"correctness\": 0.0,\n  \"reason\": \"The model answer is relevant to the question and faithful to the context, but it does not provide the correct answer because the context does not contain the required information.\"\n}\n```"
+    },
+    {
+      "id": "FIN-12",
+      "category": "Financial Performance",
+      "question": "How much revenue did the Network and Edge Group (NEX) generate in FY 2024?",
+      "ground_truth": "$5.84 billion",
+      "answer": "There is no context provided to answer the question.",
+      "retrieved_passages": 0,
+      "sources": [],
+      "scores": {
+        "answer_relevance": 1.0,
+        "faithfulness": 1.0,
+        "context_relevance": 0.0,
+        "correctness": 0.0
+      },
+      "judge_reason": "The model answer is relevant to the question and faithful to the lack of context, but it does not provide a correct answer due to the absence of retrieved context.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 1.0,\n  \"faithfulness\": 1.0,\n  \"context_relevance\": 0.0,\n  \"correctness\": 0.0,\n  \"reason\": \"The model answer is relevant to the question and faithful to the lack of context, but it does not provide a correct answer due to the absence of retrieved context.\"\n}\n```"
+    },
+    {
+      "id": "FIN-13",
+      "category": "Financial Performance",
+      "question": "How much revenue did Intel Foundry Services (IFS) generate in FY 2024?",
+      "ground_truth": "$17.54 billion",
+      "answer": "Intel Foundry Services (IFS) generated $17,317 million in revenue in FY 2024, with $159 million of that coming from external customers.",
+      "retrieved_passages": 3,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 1.0,
+        "faithfulness": 1.0,
+        "context_relevance": 1.0,
+        "correctness": 1.0
+      },
+      "judge_reason": "The answer accurately reflects the information provided in the retrieved context, which states that Intel Foundry Services generated $17,317 million in revenue in FY 2024, with $159 million coming from external customers.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 1,\n  \"faithfulness\": 1,\n  \"context_relevance\": 1,\n  \"correctness\": 1,\n  \"reason\": \"The answer accurately reflects the information provided in the retrieved context, which states that Intel Foundry Services generated $17,317 million in revenue in FY 2024, with $159 million coming from external customers.\"\n}\n```"
+    },
+    {
+      "id": "FIN-14",
+      "category": "Financial Performance",
+      "question": "What was Intel's total workforce at year-end 2024?",
+      "ground_truth": "108,900 employees",
+      "answer": "No information available.",
+      "retrieved_passages": 0,
+      "sources": [],
+      "scores": {
+        "answer_relevance": 1.0,
+        "faithfulness": 1.0,
+        "context_relevance": 0.0,
+        "correctness": 0.0
+      },
+      "judge_reason": "The model answer is relevant to the question and faithful to the lack of retrieved context, but it is not correct because it does not provide the actual workforce number.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 1.0,\n  \"faithfulness\": 1.0,\n  \"context_relevance\": 0.0,\n  \"correctness\": 0.0,\n  \"reason\": \"The model answer is relevant to the question and faithful to the lack of retrieved context, but it is not correct because it does not provide the actual workforce number.\"\n}\n```"
+    },
+    {
+      "id": "FIN-15",
+      "category": "Financial Performance",
+      "question": "How much did Intel return to shareholders via dividends in 2024?",
+      "ground_truth": "$1.6 billion",
+      "answer": "The provided context does not contain information about the amount Intel returned to shareholders via dividends in 2024.",
+      "retrieved_passages": 3,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 1.0,
+        "faithfulness": 1.0,
+        "context_relevance": 0.0,
+        "correctness": 0.0
+      },
+      "judge_reason": "The model answer correctly states that the provided context does not contain the required information, but it does not provide the correct answer.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 1.0,\n  \"faithfulness\": 1.0,\n  \"context_relevance\": 0.0,\n  \"correctness\": 0.0,\n  \"reason\": \"The model answer correctly states that the provided context does not contain the required information, but it does not provide the correct answer.\"\n}\n```"
+    },
+    {
+      "id": "FIN-16",
+      "category": "Financial Performance",
+      "question": "What was Intel's inventory balance at year-end 2024?",
+      "ground_truth": "$12.2 billion",
+      "answer": "Insufficient context. The provided context does not include Intel's inventory balance at year-end 2024.",
+      "retrieved_passages": 3,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 1.0,
+        "faithfulness": 1.0,
+        "context_relevance": 0.0,
+        "correctness": 0.0
+      },
+      "judge_reason": "Insufficient context",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 1.0,\n  \"faithfulness\": 1.0,\n  \"context_relevance\": 0.0,\n  \"correctness\": 0.0,\n  \"reason\": \"Insufficient context\"\n}\n```"
+    },
+    {
+      "id": "FIN-17",
+      "category": "Financial Performance",
+      "question": "How much did Intel report in operating cash flow for FY 2024?",
+      "ground_truth": "$8.3 billion",
+      "answer": "The provided context does not contain information about Intel's operating cash flow for FY 2024.",
+      "retrieved_passages": 3,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 1.0,
+        "faithfulness": 1.0,
+        "context_relevance": 0.0,
+        "correctness": 1.0
+      },
+      "judge_reason": "The model answer correctly states that the provided context does not contain information about Intel's operating cash flow for FY 2024.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 1.0,\n  \"faithfulness\": 1.0,\n  \"context_relevance\": 0.0,\n  \"correctness\": 1.0,\n  \"reason\": \"The model answer correctly states that the provided context does not contain information about Intel's operating cash flow for FY 2024.\"\n}\n```"
+    },
+    {
+      "id": "OVW-01",
+      "category": "Company Overview & Strategy",
+      "question": "What fiscal year does Intel's 10-K cover?",
+      "ground_truth": "Fiscal year ended December 28, 2024.",
+      "answer": "The 10-K covers fiscal year 2025, which ended on December 27, 2025, among other years.",
+      "retrieved_passages": 3,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 0.8,
+        "faithfulness": 0.6,
+        "context_relevance": 0.9,
+        "correctness": 0.6
+      },
+      "judge_reason": "The model answer is partially correct as it identifies one of the fiscal years covered by the 10-K, but it does not accurately answer the question about the specific fiscal year the 10-K covers, which is the fiscal year ended December 28, 2024, according to the ground truth.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 0.8,\n  \"faithfulness\": 0.6,\n  \"context_relevance\": 0.9,\n  \"correctness\": 0.6,\n  \"reason\": \"The model answer is partially correct as it identifies one of the fiscal years covered by the 10-K, but it does not accurately answer the question about the specific fiscal year the 10-K covers, which is the fiscal year ended December 28, 2024, according to the ground truth.\"\n}\n```"
+    },
+    {
+      "id": "OVW-02",
+      "category": "Company Overview & Strategy",
+      "question": "Where is Intel's headquarters located?",
+      "ground_truth": "2200 Mission College Blvd, Santa Clara, California 95054-1549.",
+      "answer": "Intel's headquarters is located at 2200 Mission College Boulevard, Santa Clara, California 95054-1549.",
+      "retrieved_passages": 2,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 1.0,
+        "faithfulness": 1.0,
+        "context_relevance": 1.0,
+        "correctness": 1.0
+      },
+      "judge_reason": "The model answer matches the ground truth exactly and is directly supported by the retrieved context.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 1,\n  \"faithfulness\": 1,\n  \"context_relevance\": 1,\n  \"correctness\": 1,\n  \"reason\": \"The model answer matches the ground truth exactly and is directly supported by the retrieved context.\"\n}\n```"
+    },
+    {
+      "id": "OVW-03",
+      "category": "Company Overview & Strategy",
+      "question": "What is Intel's stock ticker symbol and on which exchange does it trade?",
+      "ground_truth": "INTC on the Nasdaq Global Select Market.",
+      "answer": "Intel's stock ticker symbol is INTC, and it trades on the Nasdaq Global Select Market.",
+      "retrieved_passages": 3,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 1.0,
+        "faithfulness": 1.0,
+        "context_relevance": 1.0,
+        "correctness": 1.0
+      },
+      "judge_reason": "The model answer accurately matches the ground truth and is directly supported by the retrieved context.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 1,\n  \"faithfulness\": 1,\n  \"context_relevance\": 1,\n  \"correctness\": 1,\n  \"reason\": \"The model answer accurately matches the ground truth and is directly supported by the retrieved context.\"\n}\n```"
+    },
+    {
+      "id": "OVW-04",
+      "category": "Company Overview & Strategy",
+      "question": "How many shares of Intel were outstanding as of January 24, 2025?",
+      "ground_truth": "4,330 million shares.",
+      "answer": "The provided context does not specify the number of outstanding shares as of January 24, 2025. It only provides information on the number of shares issued and outstanding as of the end of each year (e.g., 4,994 shares issued and outstanding in 2025, and 4,330 in 2024).",
+      "retrieved_passages": 3,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 0.8,
+        "faithfulness": 1.0,
+        "context_relevance": 0.8,
+        "correctness": 0.0
+      },
+      "judge_reason": "The model answer is relevant to the question and faithful to the context, but it does not provide the correct answer because the context does not contain the information needed to determine the number of outstanding shares as of January 24, 2025.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 0.8,\n  \"faithfulness\": 1.0,\n  \"context_relevance\": 0.8,\n  \"correctness\": 0.0,\n  \"reason\": \"The model answer is relevant to the question and faithful to the context, but it does not provide the correct answer because the context does not contain the information needed to determine the number of outstanding shares as of January 24, 2025.\"\n}\n```"
+    },
+    {
+      "id": "OVW-05",
+      "category": "Company Overview & Strategy",
+      "question": "What was Intel's market value of equity held by non-affiliates as of June 28, 2024?",
+      "ground_truth": "$132.4 billion.",
+      "answer": "The provided context does not contain the market value of Intel's equity held by non-affiliates as of June 28, 2024.",
+      "retrieved_passages": 3,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/AMD_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 1.0,
+        "faithfulness": 1.0,
+        "context_relevance": 0.0,
+        "correctness": 0.0
+      },
+      "judge_reason": "The provided context does not contain the required information.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 1.0,\n  \"faithfulness\": 1.0,\n  \"context_relevance\": 0.0,\n  \"correctness\": 0.0,\n  \"reason\": \"The provided context does not contain the required information.\"\n}\n```"
+    },
+    {
+      "id": "OVW-06",
+      "category": "Company Overview & Strategy",
+      "question": "What are Intel's main customer categories?",
+      "ground_truth": "OEMs, ODMs, cloud service providers, and industrial and communication equipment manufacturers.",
+      "answer": "Intel's main customer categories include: \n1. OEMs (Original Equipment Manufacturers)\n2. ODMs (Original Design Manufacturers)\n3. CSPs (Cloud Service Providers)\n4. Other manufacturers and service providers, such as industrial and communication equipment manufacturers.",
+      "retrieved_passages": 2,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 0.9,
+        "faithfulness": 0.8,
+        "context_relevance": 0.9,
+        "correctness": 0.9
+      },
+      "judge_reason": "The model answer accurately identifies Intel's main customer categories, including OEMs, ODMs, CSPs, and industrial and communication equipment manufacturers, which is consistent with the retrieved context and ground truth. However, the model answer does not perfectly match the ground truth, resulting in a slight deduction in faithfulness and correctness.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 0.9,\n  \"faithfulness\": 0.8,\n  \"context_relevance\": 0.9,\n  \"correctness\": 0.9,\n  \"reason\": \"The model answer accurately identifies Intel's main customer categories, including OEMs, ODMs, CSPs, and industrial and communication equipment manufacturers, which is consistent with the retrieved context and ground truth. However, the model answer does not perfectly match the ground truth, resulting in a slight deduction in faithfulness and correctness.\"\n}\n```"
+    },
+    {
+      "id": "OVW-07",
+      "category": "Company Overview & Strategy",
+      "question": "What are the five superpowers driving Intel's strategy?",
+      "ground_truth": "Ubiquitous compute, pervasive connectivity, cloud-to-edge infrastructure, AI, and sensing.",
+      "answer": "The context does not mention the five superpowers driving Intel's strategy.",
+      "retrieved_passages": 1,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 1.0,
+        "faithfulness": 1.0,
+        "context_relevance": 0.0,
+        "correctness": 1.0
+      },
+      "judge_reason": "The model answer correctly states that the context does not mention the five superpowers driving Intel's strategy, which is a faithful and correct representation of the provided context.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 1.0,\n  \"faithfulness\": 1.0,\n  \"context_relevance\": 0.0,\n  \"correctness\": 1.0,\n  \"reason\": \"The model answer correctly states that the context does not mention the five superpowers driving Intel's strategy, which is a faithful and correct representation of the provided context.\"\n}\n```"
+    },
+    {
+      "id": "OVW-08",
+      "category": "Company Overview & Strategy",
+      "question": "What are Intel's four key strategic themes?",
+      "ground_truth": "Product competitiveness, open platforms, manufacturing at scale, and people.",
+      "answer": "The provided context does not mention Intel's four key strategic themes.",
+      "retrieved_passages": 3,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 1.0,
+        "faithfulness": 1.0,
+        "context_relevance": 0.0,
+        "correctness": 1.0
+      },
+      "judge_reason": "The model answer correctly states that the provided context does not mention Intel's four key strategic themes, which is a faithful and relevant response given the context.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 1.0,\n  \"faithfulness\": 1.0,\n  \"context_relevance\": 0.0,\n  \"correctness\": 1.0,\n  \"reason\": \"The model answer correctly states that the provided context does not mention Intel's four key strategic themes, which is a faithful and relevant response given the context.\"\n}\n```"
+    },
+    {
+      "id": "OVW-09",
+      "category": "Company Overview & Strategy",
+      "question": "What process nodes were in high-volume manufacturing at Intel in 2024?",
+      "ground_truth": "Intel 7, Intel 4, and Intel 3.",
+      "answer": "In 2024, the process nodes in high-volume manufacturing at Intel were: \n1. Intel 7 \n2. Intel 4 \n3. Intel 3",
+      "retrieved_passages": 3,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 1.0,
+        "faithfulness": 1.0,
+        "context_relevance": 1.0,
+        "correctness": 1.0
+      },
+      "judge_reason": "The model answer accurately identifies the process nodes in high-volume manufacturing at Intel in 2024, as stated in the retrieved context: Intel 7, Intel 4, and Intel 3.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 1.0,\n  \"faithfulness\": 1.0,\n  \"context_relevance\": 1.0,\n  \"correctness\": 1.0,\n  \"reason\": \"The model answer accurately identifies the process nodes in high-volume manufacturing at Intel in 2024, as stated in the retrieved context: Intel 7, Intel 4, and Intel 3.\"\n}\n```"
+    },
+    {
+      "id": "OVW-10",
+      "category": "Company Overview & Strategy",
+      "question": "What two breakthrough technologies are part of Intel 18A?",
+      "ground_truth": "RibbonFET (gate-all-around transistors) and PowerVia (backside power delivery).",
+      "answer": "The two breakthrough technologies part of Intel 18A are: \n1. RibbonFET (gate-all-around transistor)\n2. PowerVia (backside power delivery)",
+      "retrieved_passages": 2,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 1.0,
+        "faithfulness": 1.0,
+        "context_relevance": 1.0,
+        "correctness": 1.0
+      },
+      "judge_reason": "The model answer accurately identifies the two breakthrough technologies part of Intel 18A, which are RibbonFET and PowerVia, as stated in the retrieved context.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 1,\n  \"faithfulness\": 1,\n  \"context_relevance\": 1,\n  \"correctness\": 1,\n  \"reason\": \"The model answer accurately identifies the two breakthrough technologies part of Intel 18A, which are RibbonFET and PowerVia, as stated in the retrieved context.\"\n}\n```"
+    },
+    {
+      "id": "OVW-11",
+      "category": "Company Overview & Strategy",
+      "question": "What new client processor family will debut on Intel 18A?",
+      "ground_truth": "Panther Lake processors in 2025.",
+      "answer": "The new client processor family that will debut on Intel 18A is the Intel Core Ultra Series 3 processor.",
+      "retrieved_passages": 1,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 0.8,
+        "faithfulness": 0.9,
+        "context_relevance": 0.9,
+        "correctness": 0.8
+      },
+      "judge_reason": "The model answer is mostly correct, but it does not exactly match the ground truth. The ground truth mentions 'Panther Lake processors', while the model answer mentions 'Intel Core Ultra Series 3 processor'. The context does mention Intel Core Ultra Series 3, but it is not explicitly stated as the new client processor family debuting on Intel 18A.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 0.8,\n  \"faithfulness\": 0.9,\n  \"context_relevance\": 0.9,\n  \"correctness\": 0.8,\n  \"reason\": \"The model answer is mostly correct, but it does not exactly match the ground truth. The ground truth mentions 'Panther Lake processors', while the model answer mentions 'Intel Core Ultra Series 3 processor'. The context does mention Intel Core Ultra Series 3, but it is not explicitly stated as the new client processor family debuting on Intel 18A.\"\n}\n```"
+    },
+    {
+      "id": "OVW-12",
+      "category": "Company Overview & Strategy",
+      "question": "What major AI accelerator did Intel launch in 2024?",
+      "ground_truth": "Intel Gaudi 3 AI accelerators.",
+      "answer": "No context provided.",
+      "retrieved_passages": 0,
+      "sources": [],
+      "scores": {
+        "answer_relevance": 0.0,
+        "faithfulness": 1.0,
+        "context_relevance": 0.0,
+        "correctness": 0.0
+      },
+      "judge_reason": "The model did not provide any answer and stated that no context was provided, which aligns with the fact that no context was retrieved, but it does not address the question.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 0.0,\n  \"faithfulness\": 1.0,\n  \"context_relevance\": 0.0,\n  \"correctness\": 0.0,\n  \"reason\": \"The model did not provide any answer and stated that no context was provided, which aligns with the fact that no context was retrieved, but it does not address the question.\"\n}\n```"
+    },
+    {
+      "id": "OVW-13",
+      "category": "Company Overview & Strategy",
+      "question": "What was Intel's workforce size at the end of 2024?",
+      "ground_truth": "108,900 employees.",
+      "answer": "No information available.",
+      "retrieved_passages": 0,
+      "sources": [],
+      "scores": {
+        "answer_relevance": 1.0,
+        "faithfulness": 1.0,
+        "context_relevance": 0.0,
+        "correctness": 0.0
+      },
+      "judge_reason": "The model answer states that no information is available, which is correct given the lack of retrieved context, but it does not provide the correct answer.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 1.0,\n  \"faithfulness\": 1.0,\n  \"context_relevance\": 0.0,\n  \"correctness\": 0.0,\n  \"reason\": \"The model answer states that no information is available, which is correct given the lack of retrieved context, but it does not provide the correct answer.\"\n}\n```"
+    },
+    {
+      "id": "OVW-14",
+      "category": "Company Overview & Strategy",
+      "question": "What was Intel's undesired employee turnover rate in 2024?",
+      "ground_truth": "5.9%.",
+      "answer": "The context does not provide Intel's undesired employee turnover rate in 2024.",
+      "retrieved_passages": 1,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 1.0,
+        "faithfulness": 1.0,
+        "context_relevance": 0.0,
+        "correctness": 1.0
+      },
+      "judge_reason": "The model answer correctly states that the context does not provide the desired information.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 1,\n  \"faithfulness\": 1,\n  \"context_relevance\": 0,\n  \"correctness\": 1,\n  \"reason\": \"The model answer correctly states that the context does not provide the desired information.\"\n}\n```"
+    },
+    {
+      "id": "OVW-15",
+      "category": "Company Overview & Strategy",
+      "question": "What percentage of Intel's global employees were women in 2024?",
+      "ground_truth": "27.9%.",
+      "answer": "No context provided.",
+      "retrieved_passages": 0,
+      "sources": [],
+      "scores": {
+        "answer_relevance": 0.0,
+        "faithfulness": 0.0,
+        "context_relevance": 0.0,
+        "correctness": 0.0
+      },
+      "judge_reason": "The model failed to provide an answer or retrieve relevant context.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 0,\n  \"faithfulness\": 0,\n  \"context_relevance\": 0,\n  \"correctness\": 0,\n  \"reason\": \"The model failed to provide an answer or retrieve relevant context.\"\n}\n```"
+    },
+    {
+      "id": "OVW-16",
+      "category": "Company Overview & Strategy",
+      "question": "What percentage of Intel's senior leadership positions were held by women in 2024?",
+      "ground_truth": "18.3%.",
+      "answer": "No context provided.",
+      "retrieved_passages": 0,
+      "sources": [],
+      "scores": {
+        "answer_relevance": 0.0,
+        "faithfulness": 0.0,
+        "context_relevance": 0.0,
+        "correctness": 0.0
+      },
+      "judge_reason": "The model did not provide an answer and no context was retrieved.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 0.0,\n  \"faithfulness\": 0.0,\n  \"context_relevance\": 0.0,\n  \"correctness\": 0.0,\n  \"reason\": \"The model did not provide an answer and no context was retrieved.\"\n}\n```"
+    },
+    {
+      "id": "OVW-17",
+      "category": "Company Overview & Strategy",
+      "question": "What CHIPS Act funding did Intel secure in 2024?",
+      "ground_truth": "Up to $7.9 billion under the commercial program and up to $3 billion under the Secure Enclave program.",
+      "answer": "Intel secured $1.0 billion in CHIPS Act capital-related incentives in 2024. Additionally, they received $2.3 billion in U.S. government incentives under the CHIPS Act as of August 27, 2025, and were awarded up to $3.0 billion in direct funding for the Secure Enclave program in September 2024.",
+      "retrieved_passages": 2,
+      "sources": [
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf",
+        "s3://nova-quant-research-kb/INTC_10K_fiscal2025.pdf"
+      ],
+      "scores": {
+        "answer_relevance": 0.8,
+        "faithfulness": 0.6,
+        "context_relevance": 0.9,
+        "correctness": 0.4
+      },
+      "judge_reason": "The model answer provides some relevant information from the context, but it does not accurately answer the question about the specific CHIPS Act funding Intel secured in 2024. The answer mentions $1.0 billion in CHIPS Act capital-related incentives and $2.3 billion in U.S. government incentives, but it does not provide the correct amounts of up to $7.9 billion under the commercial program and up ",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 0.8,\n  \"faithfulness\": 0.6,\n  \"context_relevance\": 0.9,\n  \"correctness\": 0.4,\n  \"reason\": \"The model answer provides some relevant information from the context, but it does not accurately answer the question about the specific CHIPS Act funding Intel secured in 2024. The answer mentions $1.0 billion in CHIPS Act capital-related incentives and $2.3 billion in U.S. government incentives, but it does not provide the correct amounts of up to $7.9 billion under the commercial program and up to $3 billion under the Secure Enclave program.\"\n}\n```"
+    },
+    {
+      "id": "OVW-18",
+      "category": "Company Overview & Strategy",
+      "question": "When was Intel's most recent stock repurchase?",
+      "ground_truth": "Q1 2021; repurchases have been suspended since then.",
+      "answer": "No context available.",
+      "retrieved_passages": 0,
+      "sources": [],
+      "scores": {
+        "answer_relevance": 0.0,
+        "faithfulness": 1.0,
+        "context_relevance": 0.0,
+        "correctness": 0.0
+      },
+      "judge_reason": "The model answer does not provide any relevant information to answer the question, but it is faithful to the retrieved context (which is empty).",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 0.0,\n  \"faithfulness\": 1.0,\n  \"context_relevance\": 0.0,\n  \"correctness\": 0.0,\n  \"reason\": \"The model answer does not provide any relevant information to answer the question, but it is faithful to the retrieved context (which is empty).\"\n}\n```"
+    },
+    {
+      "id": "OVW-19",
+      "category": "Company Overview & Strategy",
+      "question": "When did Intel suspend its quarterly dividends?",
+      "ground_truth": "Starting Q4 2024, with dividend restrictions in place for 5 years under the CHIPS Act agreement.",
+      "answer": "No context provided.",
+      "retrieved_passages": 0,
+      "sources": [],
+      "scores": {
+        "answer_relevance": 0.0,
+        "faithfulness": 0.0,
+        "context_relevance": 0.0,
+        "correctness": 0.0
+      },
+      "judge_reason": "The model answer does not address the question and no context was retrieved to support an answer.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 0.0,\n  \"faithfulness\": 0.0,\n  \"context_relevance\": 0.0,\n  \"correctness\": 0.0,\n  \"reason\": \"The model answer does not address the question and no context was retrieved to support an answer.\"\n}\n```"
+    },
+    {
+      "id": "OVW-20",
+      "category": "Company Overview & Strategy",
+      "question": "What environmental target was tied to employee bonuses in 2024?",
+      "ground_truth": "Reduce Scope 1 and Scope 2 greenhouse gas emissions by 25,000 metric tons of CO\u2082 equivalent compared to 2023.",
+      "answer": "No context is available to answer the question.",
+      "retrieved_passages": 0,
+      "sources": [],
+      "scores": {
+        "answer_relevance": 0.0,
+        "faithfulness": 1.0,
+        "context_relevance": 0.0,
+        "correctness": 0.0
+      },
+      "judge_reason": "The model answer states that no context is available, which is true given the empty retrieved context, but it does not provide any relevant or correct information to answer the question.",
+      "judge_raw": "```json\n{\n  \"answer_relevance\": 0.0,\n  \"faithfulness\": 1.0,\n  \"context_relevance\": 0.0,\n  \"correctness\": 0.0,\n  \"reason\": \"The model answer states that no context is available, which is true given the empty retrieved context, but it does not provide any relevant or correct information to answer the question.\"\n}\n```"
+    }
+  ]
+}

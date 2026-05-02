@@ -286,22 +286,23 @@ def test_close_closes_stream_and_cancels_consumer_task(session_with_mocks):
     """close() must cancel the consumer task and close input_stream."""
     session, _, _ = session_with_mocks
 
-    session._stream = {"input_stream": AsyncMock()}
+    session._stream = MagicMock()
+    session._stream.input_stream.close = AsyncMock()
     session._send_event = AsyncMock()
 
-    # IMPORTANT: fake_task must be AsyncMock, not MagicMock.
-    # session.py does `await self._consumer_task` after cancel(); a plain
-    # MagicMock has no __await__ and raises TypeError (not CancelledError),
-    # which escapes the `except asyncio.CancelledError` guard in close().
-    fake_task = AsyncMock()
-    fake_task.done.return_value = False
-    session._consumer_task = fake_task
-    session._state = SessionState.LISTENING
+    async def _test_close():
+        # Create a real asyncio.Future to emulate the consumer task.
+        # Must be created inside an async context so it attaches to the loop.
+        fake_task = asyncio.Future()
+        session._consumer_task = fake_task
+        session._state = SessionState.LISTENING
 
-    _run(session.close())
+        await session.close()
 
-    fake_task.cancel.assert_called_once()
-    assert session.state == SessionState.CLOSED
+        assert fake_task.cancelled() is True
+        assert session.state == SessionState.CLOSED
+
+    _run(_test_close())
 
 
 def test_consume_output_dispatches_events_from_stream_chunks(session_with_mocks):
@@ -311,8 +312,9 @@ def test_consume_output_dispatches_events_from_stream_chunks(session_with_mocks)
     """
     session, _, _ = session_with_mocks
 
-    event = {"generationComplete": {}}
-    event_bytes = json.dumps(event).encode("utf-8")
+    inner_event = {"generationComplete": {}}
+    full_event = {"event": inner_event}
+    event_bytes = json.dumps(full_event).encode("utf-8")
 
     # Build the AWS SDK v2 await_output() chain:
     # stream.await_output() -> (_, receiver); receiver.receive() -> result
@@ -341,4 +343,4 @@ def test_consume_output_dispatches_events_from_stream_chunks(session_with_mocks)
 
     _run(session._consume_output())
 
-    session._handle_output_event.assert_awaited_once_with(event)
+    session._handle_output_event.assert_awaited_once_with(inner_event)

@@ -1,0 +1,234 @@
+{
+  "eval_set": {
+    "name": "Intel 10-K FY2024 RAGAS Evaluation Set",
+    "source_document": "Intel Corporation Form 10-K, Filed January 31, 2025 (Fiscal Year Ended December 28, 2024)",
+    "ticker": "INTC",
+    "total_questions": 38,
+    "categories": ["Financial Performance", "Company Overview & Strategy"],
+    "questions": [
+      {
+        "id": "FIN-01",
+        "category": "Financial Performance",
+        "question": "What was Intel's total revenue in FY 2024?",
+        "ground_truth": "$53.1 billion"
+      },
+      {
+        "id": "FIN-02",
+        "category": "Financial Performance",
+        "question": "How much did Intel's revenue decline compared to FY 2023?",
+        "ground_truth": "Revenue declined approximately 2% year-over-year."
+      },
+      {
+        "id": "FIN-03",
+        "category": "Financial Performance",
+        "question": "What was Intel's net income in FY 2024?",
+        "ground_truth": "$18.8 billion loss"
+      },
+      {
+        "id": "FIN-04",
+        "category": "Financial Performance",
+        "question": "What was Intel's diluted EPS in FY 2024?",
+        "ground_truth": "Negative $4.38 per share"
+      },
+      {
+        "id": "FIN-05",
+        "category": "Financial Performance",
+        "question": "How much did Intel spend on R&D in FY 2024?",
+        "ground_truth": "$16.5 billion"
+      },
+      {
+        "id": "FIN-06",
+        "category": "Financial Performance",
+        "question": "What was Intel's gross margin percentage in FY 2024?",
+        "ground_truth": "32.70%"
+      },
+      {
+        "id": "FIN-07",
+        "category": "Financial Performance",
+        "question": "What was Intel's total debt at year-end 2024?",
+        "ground_truth": "$50.01 billion"
+      },
+      {
+        "id": "FIN-08",
+        "category": "Financial Performance",
+        "question": "How much did Intel invest in capital expenditures in FY 2024?",
+        "ground_truth": "$23.9 billion"
+      },
+      {
+        "id": "FIN-09",
+        "category": "Financial Performance",
+        "question": "What was Intel's effective tax rate in FY 2024?",
+        "ground_truth": "71.60%"
+      },
+      {
+        "id": "FIN-10",
+        "category": "Financial Performance",
+        "question": "How much revenue did the Client Computing Group (CCG) generate in FY 2024?",
+        "ground_truth": "$30.29 billion"
+      },
+      {
+        "id": "FIN-11",
+        "category": "Financial Performance",
+        "question": "How much revenue did the Data Center and AI Group (DCAI) generate in FY 2024?",
+        "ground_truth": "$12.81 billion"
+      },
+      {
+        "id": "FIN-12",
+        "category": "Financial Performance",
+        "question": "How much revenue did the Network and Edge Group (NEX) generate in FY 2024?",
+        "ground_truth": "$5.84 billion"
+      },
+      {
+        "id": "FIN-13",
+        "category": "Financial Performance",
+        "question": "How much revenue did Intel Foundry Services (IFS) generate in FY 2024?",
+        "ground_truth": "$17.54 billion"
+      },
+      {
+        "id": "FIN-14",
+        "category": "Financial Performance",
+        "question": "What was Intel's total workforce at year-end 2024?",
+        "ground_truth": "108,900 employees"
+      },
+      {
+        "id": "FIN-15",
+        "category": "Financial Performance",
+        "question": "How much did Intel return to shareholders via dividends in 2024?",
+        "ground_truth": "$1.6 billion"
+      },
+      {
+        "id": "FIN-16",
+        "category": "Financial Performance",
+        "question": "What was Intel's inventory balance at year-end 2024?",
+        "ground_truth": "$12.2 billion"
+      },
+      {
+        "id": "FIN-17",
+        "category": "Financial Performance",
+        "question": "How much did Intel report in operating cash flow for FY 2024?",
+        "ground_truth": "$8.3 billion"
+      },
+
+      {
+        "id": "OVW-01",
+        "category": "Company Overview & Strategy",
+        "question": "What fiscal year does Intel's 10-K cover?",
+        "ground_truth": "Fiscal year ended December 28, 2024."
+      },
+      {
+        "id": "OVW-02",
+        "category": "Company Overview & Strategy",
+        "question": "Where is Intel's headquarters located?",
+        "ground_truth": "2200 Mission College Blvd, Santa Clara, California 95054-1549."
+      },
+      {
+        "id": "OVW-03",
+        "category": "Company Overview & Strategy",
+        "question": "What is Intel's stock ticker symbol and on which exchange does it trade?",
+        "ground_truth": "INTC on the Nasdaq Global Select Market."
+      },
+      {
+        "id": "OVW-04",
+        "category": "Company Overview & Strategy",
+        "question": "How many shares of Intel were outstanding as of January 24, 2025?",
+        "ground_truth": "4,330 million shares."
+      },
+      {
+        "id": "OVW-05",
+        "category": "Company Overview & Strategy",
+        "question": "What was Intel's market value of equity held by non-affiliates as of June 28, 2024?",
+        "ground_truth": "$132.4 billion."
+      },
+      {
+        "id": "OVW-06",
+        "category": "Company Overview & Strategy",
+        "question": "What are Intel's main customer categories?",
+        "ground_truth": "OEMs, ODMs, cloud service providers, and industrial and communication equipment manufacturers."
+      },
+      {
+        "id": "OVW-07",
+        "category": "Company Overview & Strategy",
+        "question": "What are the five superpowers driving Intel's strategy?",
+        "ground_truth": "Ubiquitous compute, pervasive connectivity, cloud-to-edge infrastructure, AI, and sensing."
+      },
+      {
+        "id": "OVW-08",
+        "category": "Company Overview & Strategy",
+        "question": "What are Intel's four key strategic themes?",
+        "ground_truth": "Product competitiveness, open platforms, manufacturing at scale, and people."
+      },
+      {
+        "id": "OVW-09",
+        "category": "Company Overview & Strategy",
+        "question": "What process nodes were in high-volume manufacturing at Intel in 2024?",
+        "ground_truth": "Intel 7, Intel 4, and Intel 3."
+      },
+      {
+        "id": "OVW-10",
+        "category": "Company Overview & Strategy",
+        "question": "What two breakthrough technologies are part of Intel 18A?",
+        "ground_truth": "RibbonFET (gate-all-around transistors) and PowerVia (backside power delivery)."
+      },
+      {
+        "id": "OVW-11",
+        "category": "Company Overview & Strategy",
+        "question": "What new client processor family will debut on Intel 18A?",
+        "ground_truth": "Panther Lake processors in 2025."
+      },
+      {
+        "id": "OVW-12",
+        "category": "Company Overview & Strategy",
+        "question": "What major AI accelerator did Intel launch in 2024?",
+        "ground_truth": "Intel Gaudi 3 AI accelerators."
+      },
+      {
+        "id": "OVW-13",
+        "category": "Company Overview & Strategy",
+        "question": "What was Intel's workforce size at the end of 2024?",
+        "ground_truth": "108,900 employees."
+      },
+      {
+        "id": "OVW-14",
+        "category": "Company Overview & Strategy",
+        "question": "What was Intel's undesired employee turnover rate in 2024?",
+        "ground_truth": "5.9%."
+      },
+      {
+        "id": "OVW-15",
+        "category": "Company Overview & Strategy",
+        "question": "What percentage of Intel's global employees were women in 2024?",
+        "ground_truth": "27.9%."
+      },
+      {
+        "id": "OVW-16",
+        "category": "Company Overview & Strategy",
+        "question": "What percentage of Intel's senior leadership positions were held by women in 2024?",
+        "ground_truth": "18.3%."
+      },
+      {
+        "id": "OVW-17",
+        "category": "Company Overview & Strategy",
+        "question": "What CHIPS Act funding did Intel secure in 2024?",
+        "ground_truth": "Up to $7.9 billion under the commercial program and up to $3 billion under the Secure Enclave program."
+      },
+      {
+        "id": "OVW-18",
+        "category": "Company Overview & Strategy",
+        "question": "When was Intel's most recent stock repurchase?",
+        "ground_truth": "Q1 2021; repurchases have been suspended since then."
+      },
+      {
+        "id": "OVW-19",
+        "category": "Company Overview & Strategy",
+        "question": "When did Intel suspend its quarterly dividends?",
+        "ground_truth": "Starting Q4 2024, with dividend restrictions in place for 5 years under the CHIPS Act agreement."
+      },
+      {
+        "id": "OVW-20",
+        "category": "Company Overview & Strategy",
+        "question": "What environmental target was tied to employee bonuses in 2024?",
+        "ground_truth": "Reduce Scope 1 and Scope 2 greenhouse gas emissions by 25,000 metric tons of CO₂ equivalent compared to 2023."
+      }
+    ]
+  }
+}

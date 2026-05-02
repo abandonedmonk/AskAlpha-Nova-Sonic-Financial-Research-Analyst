@@ -1,36 +1,35 @@
-# ─── Core ────────────────────────────────────────────────────────────────────
+# ── Core ────────────────────────────────────────────────────────────────────
 fastapi>=0.110.0
 uvicorn[standard]>=0.29.0
 python-dotenv>=1.0.0
 pydantic>=2.6.0
 pydantic-settings>=2.2.0
 
-# ─── AWS ─────────────────────────────────────────────────────────────────────
+# ── AWS ─────────────────────────────────────────────────────────────────────
 boto3>=1.40.0
 botocore>=1.40.0
-# ─── Market data APIs ─────────────────────────────────────────────────────────
+
+# ── Market data APIs ─────────────────────────────────────────────────────────
 httpx>=0.27.0          # async HTTP client for Finnhub/Polygon REST calls
 
-# ─── Monte Carlo compute ─────────────────────────────────────────────────────
+# ── Monte Carlo compute ─────────────────────────────────────────────────────
 numpy>=1.26.0
 
-# ─── SEC RAG fallback (local FAISS — used if Bedrock KB is not configured) ───
+# ── SEC RAG fallback (local FAISS — used if Bedrock KB is not configured) ───
 # Uncomment if you want the local-FAISS fallback path:
 # llama-index>=0.10.0
 # faiss-cpu>=1.8.0
 # pypdf>=4.0.0
 
-# ─── Nova Sonic (voice) ──────────────────────────────────────────────────────
+# ── Nova Sonic (voice) ──────────────────────────────────────────────────────
 pyaudio>=0.2.14          # audio I/O for voice capture/playback
 # AWS SDK v2 for Nova Sonic bidirectional streaming (requires Python 3.12+)
 aws-sdk-bedrock-runtime>=0.1.0
-smithy-core>=0.1.0
-smithy-aws-core>=0.1.0
 
-# ─── Utilities ───────────────────────────────────────────────────────────────
+# ── Utilities ───────────────────────────────────────────────────────────────
 python-multipart>=0.0.9  # for FastAPI form/file uploads
 aiofiles>=23.2.1         # async file writes for vault logger
 
-# ─── Testing ─────────────────────────────────────────────────────────────────
+# ── Testing ─────────────────────────────────────────────────────────────────
 pytest>=7.4.0
 pytest-asyncio>=0.23.0
